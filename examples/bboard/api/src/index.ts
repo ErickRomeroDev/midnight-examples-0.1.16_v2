@@ -6,17 +6,17 @@
 
 import { type ContractAddress, convert_bigint_to_Uint8Array } from '@midnight-ntwrk/compact-runtime';
 import { type Logger } from 'pino';
-import type { BBoardDerivedState, BBoardContract, BBoardProviders, DeployedBBoardContract } from './common-types.js';
+import type { BBoardDerivedState, BBoardContract, BBoardProviders, DeployedBBoardContract } from './common-types';
 import {
   type BBoardPrivateState,
   Contract,
   createBBoardPrivateState,
   ledger,
-  pureCircuits,
+  pureCircuits,    
   witnesses,
-  STATE,
+  STATE,  
 } from '@midnight-ntwrk/bboard-contract';
-import * as utils from './utils/index.js';
+import * as utils from './utils/index';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import { combineLatest, map, tap, from, type Observable } from 'rxjs';
 import { toHex } from '@midnight-ntwrk/midnight-js-utils';
@@ -59,7 +59,7 @@ export class BBoardAPI implements DeployedBBoardAPI {
     providers: BBoardProviders,
     private readonly logger?: Logger,
   ) {
-    this.deployedContractAddress = deployedContract.deployTxData.public.contractAddress;
+    this.deployedContractAddress = deployedContract.deployTxData.public.contractAddress    
     this.state$ = combineLatest(
       [
         // Combine public (ledger) state with...
@@ -76,7 +76,7 @@ export class BBoardAPI implements DeployedBBoardAPI {
               },
             }),
           ),
-        ),
+        ),        
         // ...private state...
         //    since the private state of the bulletin board application never changes, we can query the
         //    private state once and always use the same value with `combineLatest`. In applications
@@ -232,6 +232,6 @@ export class BBoardAPI implements DeployedBBoardAPI {
  *
  * @public
  */
-export * as utils from './utils/index.js';
+export * as utils from './utils/index';
 
-export * from './common-types.js';
+export * from './common-types';

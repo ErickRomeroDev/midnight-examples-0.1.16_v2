@@ -55,6 +55,6 @@ export const witnesses = {
   local_secret_key: ({ privateState }: WitnessContext<Ledger, BBoardPrivateState>): [BBoardPrivateState, Uint8Array] => [
     // EXERCISE 2: WHAT ARE THE CORRECT TWO VALUES TO RETURN HERE?
     privateState, // EXERCISE ANSWER
-    privateState.secretKey, // EXERCISE ANSWER
+    privateState.secretKey, // EXERCISE ANSWER  
   ],
 };

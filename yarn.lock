@@ -1506,6 +1506,55 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@midnight-ntwrk/naval-battle-game-contract@workspace:*, @midnight-ntwrk/naval-battle-game-contract@workspace:examples/naval-battle-game/contract":
+  version: 0.0.0-use.local
+  resolution: "@midnight-ntwrk/naval-battle-game-contract@workspace:examples/naval-battle-game/contract"
+  dependencies:
+    "@midnight-ntwrk/compact": "workspace:*"
+    eslint: "npm:^8.52.0"
+    jest: "npm:^29.7.0"
+    typescript: "npm:^5.2.2"
+  languageName: unknown
+  linkType: soft
+
+"@midnight-ntwrk/naval-battle-game-midnight-js@workspace:*, @midnight-ntwrk/naval-battle-game-midnight-js@workspace:examples/naval-battle-game/midnight-js":
+  version: 0.0.0-use.local
+  resolution: "@midnight-ntwrk/naval-battle-game-midnight-js@workspace:examples/naval-battle-game/midnight-js"
+  dependencies:
+    "@midnight-ntwrk/naval-battle-game-contract": "workspace:*"
+    eslint: "npm:^8.52.0"
+    jest: "npm:^29.7.0"
+    typescript: "npm:^5.2.2"
+    uuid: "npm:^9.0.1"
+  languageName: unknown
+  linkType: soft
+
+"@midnight-ntwrk/naval-battle-game-organizer-ui@workspace:examples/naval-battle-game/naval-battle-game-ui":
+  version: 0.0.0-use.local
+  resolution: "@midnight-ntwrk/naval-battle-game-organizer-ui@workspace:examples/naval-battle-game/naval-battle-game-ui"
+  dependencies:
+    "@emotion/react": "npm:^11.11.1"
+    "@emotion/styled": "npm:^11.11.0"
+    "@midnight-ntwrk/naval-battle-game-contract": "workspace:*"
+    "@midnight-ntwrk/naval-battle-game-midnight-js": "workspace:*"
+    "@mui/icons-material": "npm:^5.14.14"
+    "@mui/material": "npm:^5.14.14"
+    "@types/react": "npm:^18.2.0"
+    "@types/react-dom": "npm:^18.2.0"
+    "@vitejs/plugin-react": "npm:^4.1.1"
+    eslint: "npm:^8.52.0"
+    eslint-config-standard-with-typescript: "npm:^39.1.1"
+    eslint-plugin-react: "npm:^7.33.2"
+    http-server: "npm:^14.1.1"
+    jest: "npm:^29.7.0"
+    react: "npm:^18.2.0"
+    react-dom: "npm:^18.2.0"
+    react-router-dom: "npm:6.17.0"
+    typescript: "npm:^5.2.2"
+    vite: "npm:^4.5.1"
+  languageName: unknown
+  linkType: soft
+
 "@midnight-ntwrk/onchain-runtime@npm:^0.2.2":
   version: 0.2.2
   resolution: "@midnight-ntwrk/onchain-runtime@npm:0.2.2"
