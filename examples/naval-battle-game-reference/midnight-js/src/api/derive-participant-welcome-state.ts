@@ -1,6 +1,6 @@
 import { Ledger, WelcomePrivateState } from '@midnight-ntwrk/naval-battle-game-contract';
-import { EphemeralState } from './ephemeral-state-bloc.js';
-import { ParticipantWelcomeState } from './api';
+import { EphemeralState } from './ephemeral-state-bloc';
+import { ParticipantWelcomeState } from '../types';
 
 export const deriveParticipantWelcomeState = (
   { checkedInParticipants }: Ledger,

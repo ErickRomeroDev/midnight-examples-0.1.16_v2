@@ -9,3 +9,11 @@ Details of the contents of this repository can be found in [Midnight documentati
 ## Requirements
 
 Node.js - LTS/hydrogen
+
+
+## Important Notes
+When configuring a new workspace, run "yarn" at the root
+Run nvm install at the project workspace
+Run npx turbo build at the project workspace
+Sometimes when you want to run the compiler you can do comptactc ....
+when doing a compile, change the exports for export for ledger, contract, purecircuits and others. At contract/dist/manged/mxmxmx/contract/index.cjs

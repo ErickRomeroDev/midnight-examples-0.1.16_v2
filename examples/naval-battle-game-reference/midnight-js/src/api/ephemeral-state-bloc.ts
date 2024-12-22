@@ -1,12 +1,5 @@
-import {
-  AsyncAction,
-  ActionId,
-  failedAsyncAction,
-  succeededAsyncAction,
-  ActionHistory,
-  FinalizedTxData,
-} from '@midnight-ntwrk/welcome-api';
-import { Bloc, Resource } from '@midnight-ntwrk/welcome-helpers';
+import { AsyncAction, ActionId, failedAsyncAction, succeededAsyncAction, ActionHistory, FinalizedTxData } from '../types';
+import { Bloc, Resource } from '../helpers';
 import { Logger } from 'pino';
 
 /**

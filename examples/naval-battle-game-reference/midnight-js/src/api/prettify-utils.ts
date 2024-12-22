@@ -1,5 +1,5 @@
-import { ActionHistory, OrganizerWelcomeState, ParticipantWelcomeState } from '@midnight-ntwrk/welcome-api';
-import { Ledger } from '@midnight-ntwrk/welcome-contract';
+import { ActionHistory, OrganizerWelcomeState, ParticipantWelcomeState } from '../types';
+import { Ledger } from '@midnight-ntwrk/naval-battle-game-contract';
 import { toHex } from '@midnight-ntwrk/midnight-js-utils';
 
 export const prettifyActions = ({ latest, all }: ActionHistory): object => ({

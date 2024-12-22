@@ -4,7 +4,7 @@ import {
   WelcomeProviders,
   DeployedWelcomeContract,
   FinalizedWelcomeCallTxData,
-} from './common-types.js';
+} from './common-types';
 import { CallTxFailedError, deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import {
   Contract,
@@ -17,7 +17,7 @@ import {
   INITIAL_PARTICIPANTS_VECTOR_LENGTH,
   Maybe,
   pureCircuits,
-} from '@midnight-ntwrk/welcome-contract';
+} from '@midnight-ntwrk/naval-battle-game-contract';
 import { ContractAddress } from '@midnight-ntwrk/compact-runtime';
 import { FinalizedTxData } from '@midnight-ntwrk/midnight-js-types';
 import {
@@ -30,12 +30,12 @@ import {
   OrganizerWelcomeState,
   ParticipantWelcomeAPI,
   ParticipantWelcomeState,
-} from '@midnight-ntwrk/welcome-api';
+} from '../types';
 import * as Rx from 'rxjs';
-import { deriveOrganizerWelcomeState } from './derive-organizer-welcome-state.js';
-import { EphemeralState } from './ephemeral-state-bloc.js';
-import { deriveParticipantWelcomeState } from './derive-participant-welcome-state.js';
-import { prettifyLedgerState, prettifyOrganizerState, prettifyParticipantState } from './prettify-utils.js';
+import { deriveOrganizerWelcomeState } from './derive-organizer-welcome-state';
+import { EphemeralState } from './ephemeral-state-bloc';
+import { deriveParticipantWelcomeState } from './derive-participant-welcome-state';
+import { prettifyLedgerState, prettifyOrganizerState, prettifyParticipantState } from './prettify-utils';
 
 export const welcomeContractInstance: WelcomeContract = new Contract(witnesses);
 

@@ -1,6 +1,6 @@
-import { WelcomePrivateState, Ledger, pureCircuits } from '@midnight-ntwrk/welcome-contract';
-import { OrganizerWelcomeState, Roles } from './api';
-import { EphemeralState } from './ephemeral-state-bloc.js';
+import { WelcomePrivateState, Ledger, pureCircuits } from '@midnight-ntwrk/naval-battle-game-contract';
+import { OrganizerWelcomeState, Roles } from '../types';
+import { EphemeralState } from './ephemeral-state-bloc';
 import { toHex } from '@midnight-ntwrk/midnight-js-utils';
 
 export const deriveOrganizerWelcomeState = (

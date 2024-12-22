@@ -1,10 +1,10 @@
 import { MidnightProviders } from '@midnight-ntwrk/midnight-js-types';
-import { Cryptography } from './cryptography.js';
+import { Cryptography } from './cryptography';
 import { Logger } from 'pino';
-import { Witnesses, WelcomePrivateState, Contract } from '@midnight-ntwrk/welcome-contract';
-import { SubscribablePrivateStateProvider } from './private-state-decorator.js';
+import { Witnesses, WelcomePrivateState, Contract } from '@midnight-ntwrk/naval-battle-game-contract';
+import { SubscribablePrivateStateProvider } from './private-state-decorator';
 import { FoundContract, FinalizedCallTxData } from '@midnight-ntwrk/midnight-js-contracts';
-import { EphemeralStateBloc } from './ephemeral-state-bloc.js';
+import { EphemeralStateBloc } from './ephemeral-state-bloc';
 
 export type PrivateStates = {
   welcomePrivateState: WelcomePrivateState;

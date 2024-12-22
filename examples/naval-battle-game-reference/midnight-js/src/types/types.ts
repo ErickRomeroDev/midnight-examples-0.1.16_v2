@@ -1,6 +1,6 @@
 import * as t from 'io-ts';
 import { either } from 'fp-ts';
-import { ValuesOf, block } from '@midnight-ntwrk/welcome-helpers';
+import { ValuesOf, block } from '../helpers';
 import { Observable } from 'rxjs';
 export const Actions = {
   addParticipant: 'add_participant',
