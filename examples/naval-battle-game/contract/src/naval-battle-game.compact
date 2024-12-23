@@ -1,53 +1,167 @@
 pragma language_version >= 0.12.1;
 
 import CompactStandardLibrary;
-export { Maybe }
 
-// This contract is not intended to provide a production-grade user registration service. It is intended to be a simple
-// demonstration of a Midnight decentralized application.
+enum CellState { unset, hit, miss }
 
-// Stores the identity the participant used to check in
-witness set_local_id(participant: Opaque<"string">): Void;
+enum CellAssignment { blank, ship }
 
-// Secret key of the current user (only defined for organizers)
-witness local_sk(): Maybe<Bytes<32>>;
+//private state
+witness local_sk(): Bytes<32>;
 
-export ledger organizer_pks: Set<Bytes<32>>;
-export ledger eligible_participants: Set<Opaque<"string">>;
-export ledger checked_in_participants: Set<Opaque<"string">>;
+witness local_gameplay(): Vector<100, CellAssignment>;
+witness set_local_gameplay(playerSetup: Vector<100, CellAssignment>): Bytes<32>;         
 
-constructor(initial_eligible_participants: Vector<5000, Maybe<Opaque<"string">>>) {
-  organizer_pks.insert(public_key(local_sk_or_error()));
-  for maybe_participant in initial_eligible_participants do {
-    if (maybe_participant.is_some) {
-      eligible_participants.insert(maybe_participant.value);
-    }
+// public state
+export ledger gameStarted: Cell<Boolean>;
+export ledger players: Counter;
+
+export ledger playerOnePk: Cell<Bytes<32>> ;
+export ledger playerOneGrid: Map<Uint<32>, CellState>;
+export ledger playerOneCommit: Cell<Bytes<32>>;
+export ledger playerOneHits: Counter;
+export ledger playerOneHasCommitted: Cell<Boolean>;
+export ledger playerOneHasJoinedTheGame: Cell<Boolean>;
+export ledger playerOneTimeToPlay: Cell<Boolean>;
+export ledger playerOneCurrentMove: Cell<Uint<0..100>>;
+
+export ledger playerTwoPk: Cell<Bytes<32>>;
+export ledger playerTwoGrid: Map<Uint<32>, CellState>;
+export ledger playerTwoCommit: Cell<Bytes<32>>;
+export ledger playerTwoHits: Counter;
+export ledger playerTwoHasCommitted: Cell<Boolean>;
+export ledger playerTwoHasJoinedTheGame: Cell<Boolean>;
+export ledger playerTwoTimeToPlay: Cell<Boolean>;
+export ledger playerTwoCurrentMove: Cell<Uint<0..100>>;
+
+constructor(plOne: Bytes<32>) {
+  for i = 1 to 100 do {
+    playerOneGrid.insert(i, CellState.unset);
+    playerTwoGrid.insert(i, CellState.unset);
+  }
+  gameStarted.write(false);
+  playerOneHasJoinedTheGame.write(true);
+  playerOneTimeToPlay.write(true);  
+  players.increment(1);
+  playerOnePk.write(plOne);  
+  playerOneHasCommitted.write(false);
+  playerTwoHasCommitted.write(false);  
+}
+
+//circuits
+export circuit startGame(): Void {
+  assert (gameStarted == false) "Game has already started" ;  
+  assert (players == 2) "Game is designed for two players";
+  assert (playerOneHasCommitted == true) "Player one has not committed";
+  assert (playerTwoHasCommitted == true) "Player two has not committed";
+  assert (playerOneHasJoinedTheGame == true) "Player one has not joined the game";
+  assert (playerTwoHasJoinedTheGame == true) "Player two has not joined the game";
+  gameStarted.write(true);  
+}
+
+export circuit joinGame(player: Bytes<32>): Void {
+  assert (gameStarted == false) "Game has already started" ;    
+  assert (players < 2) "Game is designed for two players";
+  assert (playerOnePk != player) "Player one cannot join the game twice";  
+  playerTwoPk.write(player);
+  playerTwoHasJoinedTheGame.write(true);  
+  playerTwoTimeToPlay.write(false);
+  players.increment(1);
+}
+
+export circuit commitGrid(player: Bytes<32>, playerSetup: Vector<100, CellAssignment>): Void {
+  assert (gameStarted == false) "Game has already started" ;
+  assert (players < 2) "Game is designed for two players";    
+  if (player == playerOnePk) {
+    assert (playerOneHasJoinedTheGame == true) "Player one has not joined the game";
+    assert (playerOneHasCommitted == false) "Player one has already committed";
+    assert (playerOnePk == public_key(local_sk())) "PlayerOne confirmation failed";  
+    const commit = set_local_gameplay(playerSetup);  
+    playerOneCommit.write(commit);
+    playerOneHasCommitted.write(true);
+  } else {  
+    assert (player == playerTwoPk) "You are not player two";  
+    assert (playerTwoHasJoinedTheGame == true) "Player two has not joined the game";    
+    assert (playerTwoHasCommitted == false) "Player two has already committed";
+    assert (playerTwoPk == public_key(local_sk())) "PlayerTwo confirmation failed";
+    const commit = set_local_gameplay(playerSetup);  
+    playerTwoCommit.write(commit);
+    playerTwoHasCommitted.write(true);
   }
 }
 
-export circuit add_participant(participant: Opaque<"string">): Void {
-  assert organizer_pks.member(public_key(local_sk_or_error())) "Not an organizer";
-  eligible_participants.insert(participant);
+export circuit makeMove(player: Bytes<32>, move: Uint<0..100>): Void {
+  assert (gameStarted == true) "Game has not started" ;
+  assert (playerOneHasCommitted == true) "Player one has not committed";
+  assert (playerTwoHasCommitted == true) "Player two has not committed";
+  if (player == playerOnePk) {
+    assert (playerOneTimeToPlay == true) "It is not player one's turn";
+    assert (playerOnePk == public_key(local_sk())) "You are not player one";
+    playerOneCurrentMove.write(move);
+
+    //check if player two move was a hit or a miss, and update player one grid
+    assert (vectorHash(local_gameplay()) == playerOneCommit) "Player one has tampered with the grid";
+    const counter = 0;
+    for gameCell in local_gameplay() do {
+      counter +1;
+      if (counter == playerTwoCurrentMove) {        
+        if (gameCell == CellAssignment.ship) {
+          playerOneGrid.insert(playerTwoCurrentMove, CellState.hit);
+          playerTwoHits.increment(1);
+        } else {
+          playerOneGrid.insert(playerTwoCurrentMove, CellState.miss);
+      } 
+    }}
+
+    //change turns
+    playerOneTimeToPlay.write(false);
+    playerTwoTimeToPlay.write(true);
+
+  } else {
+    assert (player == playerTwoPk) "You are not player two";  
+    assert (playerTwoTimeToPlay == true) "It is not player two's turn";
+    assert (playerTwoPk == public_key(local_sk())) "You are not player two";
+    playerTwoCurrentMove.write(move);
+
+    //check if player one move was a hit or a miss, and update player two grid
+    assert (vectorHash(local_gameplay()) == playerTwoCommit) "Player two has tampered with the grid";
+    const counter = 0;
+    for gameCell in local_gameplay() do {
+      counter +1;
+      if (counter == playerOneCurrentMove) {        
+        if (gameCell == CellAssignment.ship) {
+          playerTwoGrid.insert(playerOneCurrentMove, CellState.hit);
+          playerOneHits.increment(1);
+        } else {
+          playerTwoGrid.insert(playerOneCurrentMove, CellState.miss);
+      } 
+    }}
+
+    //change turns
+    playerTwoTimeToPlay.write(false);
+    playerOneTimeToPlay.write(true);
+  }
 }
 
-export circuit add_organizer(organizer_pk: Bytes<32>): Void {
-  assert organizer_pks.member(public_key(local_sk_or_error())) "Not an organizer";
-  organizer_pks.insert(organizer_pk);
-}
+export circuit checkWinner(): Bytes<32> {
+  assert (gameStarted == true) "Game has not started" ;
+  assert (playerOneHasCommitted == true) "Player one has not committed";
+  assert (playerTwoHasCommitted == true) "Player two has not committed";
 
-// Yes, anyone can check in as any other eligible participant
-export circuit check_in(participant: Opaque<"string">): Void {
-  assert eligible_participants.member(participant) "Not eligible participant";
-  checked_in_participants.insert(participant);
-  set_local_id(participant);
-}
-
-circuit local_sk_or_error(): Bytes<32> {
-  const maybe_sk = local_sk();
-  assert maybe_sk.is_some "No secret key found";
-  return maybe_sk.value;
+  if (playerOneHits == 17) {
+    return playerOnePk;
+  } 
+  if (playerTwoHits == 17) {
+    return playerTwoPk;
+  } else {
+    return pad(32, "No winner yet");
+  }
 }
 
 export circuit public_key(sk: Bytes<32>): Bytes<32> {
-  return persistent_hash<Vector<2, Bytes<32>>>([pad(32, "welcome:pk:"), sk]);
+  return persistent_hash<Vector<2, Bytes<32>>>([pad(32, "naval-battle-game:pk:"), sk]);
+}
+
+export circuit vectorHash(sk: Vector<100, CellAssignment>): Bytes<32> {
+  return persistent_hash<Vector<100, CellAssignment>>(sk);
 }

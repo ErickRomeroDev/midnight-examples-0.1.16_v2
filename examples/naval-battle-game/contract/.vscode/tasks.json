@@ -1,0 +1,23 @@
+{
+    "tasks": [
+      {
+        "label": "Compile compact file",
+         "type": "shell",
+         "command": "compactc --vscode --skip-zk ${file} ${workspaceFolder}/src/managed",
+         "group": "build",
+         "presentation": {
+           "echo": true,
+           "reveal": "silent",
+           "focus": false,
+           "panel": "new",
+           "showReuseMessage": false,
+           "clear": false
+         },
+         "problemMatcher": [
+             "$compactException",
+             "$compactInternal",
+             "$compactCommandNotFound"
+         ]
+      }
+    ]
+  }
