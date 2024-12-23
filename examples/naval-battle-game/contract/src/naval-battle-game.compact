@@ -24,6 +24,7 @@ export ledger playerOneHasCommitted: Cell<Boolean>;
 export ledger playerOneHasJoinedTheGame: Cell<Boolean>;
 export ledger playerOneTimeToPlay: Cell<Boolean>;
 export ledger playerOneCurrentMove: Cell<Uint<0..100>>;
+export ledger playerOneIsWinner: Cell<Boolean>;
 
 export ledger playerTwoPk: Cell<Bytes<32>>;
 export ledger playerTwoGrid: Map<Uint<32>, CellState>;
@@ -33,6 +34,7 @@ export ledger playerTwoHasCommitted: Cell<Boolean>;
 export ledger playerTwoHasJoinedTheGame: Cell<Boolean>;
 export ledger playerTwoTimeToPlay: Cell<Boolean>;
 export ledger playerTwoCurrentMove: Cell<Uint<0..100>>;
+export ledger playerTwoIsWinner: Cell<Boolean>;
 
 constructor(plOne: Bytes<32>) {
   for i = 1 to 100 do {
@@ -46,19 +48,11 @@ constructor(plOne: Bytes<32>) {
   playerOnePk.write(plOne);  
   playerOneHasCommitted.write(false);
   playerTwoHasCommitted.write(false);  
+  playerTwoIsWinner.write(false);
+  playerOneIsWinner.write(false);
 }
 
 //circuits
-export circuit startGame(): Void {
-  assert (gameStarted == false) "Game has already started" ;  
-  assert (players == 2) "Game is designed for two players";
-  assert (playerOneHasCommitted == true) "Player one has not committed";
-  assert (playerTwoHasCommitted == true) "Player two has not committed";
-  assert (playerOneHasJoinedTheGame == true) "Player one has not joined the game";
-  assert (playerTwoHasJoinedTheGame == true) "Player two has not joined the game";
-  gameStarted.write(true);  
-}
-
 export circuit joinGame(player: Bytes<32>): Void {
   assert (gameStarted == false) "Game has already started" ;    
   assert (players < 2) "Game is designed for two players";
@@ -90,13 +84,25 @@ export circuit commitGrid(player: Bytes<32>, playerSetup: Vector<100, CellAssign
   }
 }
 
+export circuit startGame(): Void {
+  assert (gameStarted == false) "Game has already started" ;  
+  assert (players == 2) "Game is designed for two players";
+  assert (playerOneHasCommitted == true) "Player one has not committed";
+  assert (playerTwoHasCommitted == true) "Player two has not committed";
+  assert (playerOneHasJoinedTheGame == true) "Player one has not joined the game";
+  assert (playerTwoHasJoinedTheGame == true) "Player two has not joined the game";
+  gameStarted.write(true);  
+}
+
 export circuit makeMove(player: Bytes<32>, move: Uint<0..100>): Void {
   assert (gameStarted == true) "Game has not started" ;
   assert (playerOneHasCommitted == true) "Player one has not committed";
   assert (playerTwoHasCommitted == true) "Player two has not committed";
+  assert (playerOneIsWinner == false || playerTwoIsWinner == false) "Game has a winner";
   if (player == playerOnePk) {
     assert (playerOneTimeToPlay == true) "It is not player one's turn";
     assert (playerOnePk == public_key(local_sk())) "You are not player one";
+    assert (playerTwoGrid.lookup(move) == CellState.unset) "Cell has already been played";
     playerOneCurrentMove.write(move);
 
     //check if player two move was a hit or a miss, and update player one grid
@@ -106,7 +112,10 @@ export circuit makeMove(player: Bytes<32>, move: Uint<0..100>): Void {
       counter +1;
       if (counter == playerTwoCurrentMove) {        
         if (gameCell == CellAssignment.ship) {
-          playerOneGrid.insert(playerTwoCurrentMove, CellState.hit);
+          playerOneGrid.insert(playerTwoCurrentMove, CellState.hit);          
+          if (playerTwoHits == 16) {
+              playerTwoIsWinner.write(true);
+          }
           playerTwoHits.increment(1);
         } else {
           playerOneGrid.insert(playerTwoCurrentMove, CellState.miss);
@@ -121,6 +130,7 @@ export circuit makeMove(player: Bytes<32>, move: Uint<0..100>): Void {
     assert (player == playerTwoPk) "You are not player two";  
     assert (playerTwoTimeToPlay == true) "It is not player two's turn";
     assert (playerTwoPk == public_key(local_sk())) "You are not player two";
+    assert (playerOneGrid.lookup(move) == CellState.unset) "Cell has already been played";
     playerTwoCurrentMove.write(move);
 
     //check if player one move was a hit or a miss, and update player two grid
@@ -130,7 +140,10 @@ export circuit makeMove(player: Bytes<32>, move: Uint<0..100>): Void {
       counter +1;
       if (counter == playerOneCurrentMove) {        
         if (gameCell == CellAssignment.ship) {
-          playerTwoGrid.insert(playerOneCurrentMove, CellState.hit);
+          playerTwoGrid.insert(playerOneCurrentMove, CellState.hit);          
+          if (playerOneHits == 16) {
+              playerOneIsWinner.write(true);
+          }
           playerOneHits.increment(1);
         } else {
           playerTwoGrid.insert(playerOneCurrentMove, CellState.miss);
@@ -140,21 +153,6 @@ export circuit makeMove(player: Bytes<32>, move: Uint<0..100>): Void {
     //change turns
     playerTwoTimeToPlay.write(false);
     playerOneTimeToPlay.write(true);
-  }
-}
-
-export circuit checkWinner(): Bytes<32> {
-  assert (gameStarted == true) "Game has not started" ;
-  assert (playerOneHasCommitted == true) "Player one has not committed";
-  assert (playerTwoHasCommitted == true) "Player two has not committed";
-
-  if (playerOneHits == 17) {
-    return playerOnePk;
-  } 
-  if (playerTwoHits == 17) {
-    return playerTwoPk;
-  } else {
-    return pad(32, "No winner yet");
   }
 }
 
