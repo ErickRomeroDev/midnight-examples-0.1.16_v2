@@ -1,5 +1,5 @@
-// Compact should produce the expected length of vector inputs. Until then, we manually set the
-// length to match the length the contract expects.
+export const numberOfPositions = 100;
+
 export const aircraftCarrier = 5;
 export const battleship = 4;
 export const crusier = 3;

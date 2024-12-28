@@ -1,8 +1,7 @@
 import { Contract, Witnesses, Ledger, ledger, pureCircuits } from '../managed/naval-battle-game/contract/index.cjs';
 import {
-  createOrganizerWelcomePrivateState,
-  createParticipantWelcomePrivateState,
-  WelcomePrivateState,
+  createNavalBattleGameInitialPrivateState,    
+  NavalBattlePrivateState,
   witnesses,
 } from '../witnesses';
 import * as crypto from 'node:crypto';
@@ -14,85 +13,84 @@ import {
   sampleContractAddress,
 } from '@midnight-ntwrk/compact-runtime';
 
-type WelcomeContract = Contract<WelcomePrivateState, Witnesses<WelcomePrivateState>>;
+type NavalBattleGameContract = Contract<NavalBattlePrivateState, Witnesses<NavalBattlePrivateState>>;
 
 export const randomSk = () => crypto.getRandomValues(Buffer.alloc(32));
 
-export const randomOrganizerWelcomePrivateState = () => createOrganizerWelcomePrivateState(randomSk());
+export const randomNavalBattleGamePrivateState = () => createNavalBattleGameInitialPrivateState(randomSk());
 
 export const toHex = (byteArray: Uint8Array): string => Buffer.from(byteArray).toString('hex');
 
-const INITIAL_PARTICIPANTS_VECTOR_LENGTH = 5000;
-
 // Adapted from the '@midnight/coracle-contract' tests
-export class WelcomeSimulator {
-  readonly contract: WelcomeContract;
-  userPrivateStates: Record<string, WelcomePrivateState>;
-  circuitContext: CircuitContext<WelcomePrivateState>;
-  turnContext: CircuitContext<WelcomePrivateState>;
-  updateUserPrivateState: (newPrivateState: WelcomePrivateState) => void;
+export class NavalBattleGameSimulator {
+  readonly contract: NavalBattleGameContract;
+  userPrivateStates: Record<string, NavalBattlePrivateState>;
+  circuitContext: CircuitContext<NavalBattlePrivateState>;
+  turnContext: CircuitContext<NavalBattlePrivateState>;
+  updateUserPrivateState: (newPrivateState: NavalBattlePrivateState) => void;
+  address: string;
 
-  constructor(deployerName: string, deployerInitialPrivateState: WelcomePrivateState, initialParticipants: string[]) {
+  constructor(deployerName: string, deployerInitialPrivateState: NavalBattlePrivateState) {
+    this.address = sampleContractAddress();
     this.contract = new Contract(witnesses);
-    const emptyMaybeVector = Array(INITIAL_PARTICIPANTS_VECTOR_LENGTH - initialParticipants.length).fill({
-      is_some: false,
-      value: '',
-    });
-    const participantMaybeVector = initialParticipants
-      .map((p) => ({
-        is_some: true,
-        value: p,
-      }))
-      .concat(emptyMaybeVector);
+    const playerOnePk = pureCircuits.public_key(deployerInitialPrivateState.secretKey);
+  
     const { currentPrivateState, currentContractState, currentZswapLocalState } = this.contract.initialState(
       constructorContext(deployerInitialPrivateState, '0'.repeat(64)),
-      participantMaybeVector,
+      playerOnePk, 
     );
     this.userPrivateStates = { [deployerName]: currentPrivateState };
     this.circuitContext = {
       currentPrivateState,
       currentZswapLocalState,
       originalState: currentContractState,
-      transactionContext: new QueryContext(currentContractState.data, sampleContractAddress()),
+      transactionContext: new QueryContext(currentContractState.data, this.address),
     };
     this.turnContext = { ...this.circuitContext };
-    this.updateUserPrivateState = (newPrivateState: WelcomePrivateState) => {
+    this.updateUserPrivateState = (newPrivateState: NavalBattlePrivateState) => {
       this.userPrivateStates[deployerName] = newPrivateState;
     };
   }
 
-  static organizerDeploy(organizerName: string, initialParticipants: string[] = []): WelcomeSimulator {
-    return new WelcomeSimulator(organizerName, randomOrganizerWelcomePrivateState(), initialParticipants);
+  static gameDeploy(deployerName: string): NavalBattleGameSimulator {
+    return new NavalBattleGameSimulator(deployerName, randomNavalBattleGamePrivateState());
   }
 
-  private buildTurnContext(currentPrivateState: WelcomePrivateState): CircuitContext<WelcomePrivateState> {
+  private buildTurnContext(currentPrivateState: NavalBattlePrivateState): CircuitContext<NavalBattlePrivateState> {
     return {
       ...this.circuitContext,
       currentPrivateState,
     };
   }
 
-  organizerJoin(organizerName: string): WelcomePrivateState {
-    const organizerPrivateState = randomOrganizerWelcomePrivateState();
-    this.turnContext = this.buildTurnContext(organizerPrivateState);
-    this.updateUserPrivateStateByName(organizerName)(organizerPrivateState);
-    this.updateUserPrivateState = this.updateUserPrivateStateByName(organizerName);
-    return organizerPrivateState;
-  }
-
-  organizerPk(organizerName: string): Uint8Array {
-    if (organizerName in this.userPrivateStates) {
-      const organizerPrivateState = this.userPrivateStates[organizerName];
-      if (organizerPrivateState.organizerSecretKey !== null) {
-        return pureCircuits.public_key(organizerPrivateState.organizerSecretKey);
+  playerPk(deployerName: string): Uint8Array {
+    if (deployerName in this.userPrivateStates) {
+      const battlePrivateState = this.userPrivateStates[deployerName];
+      if (battlePrivateState.secretKey !== null) {
+        return pureCircuits.public_key(battlePrivateState.secretKey);
       }
-      throw new Error(`${organizerName} is not an organizer`);
+      throw new Error(`${deployerName} does not exist`);
     }
-    throw new Error(`${organizerName} is not a user`);
+    throw new Error(`${deployerName} does not exist`);
   }
 
-  participantJoin(participantName: string): WelcomePrivateState {
-    const participantPrivateState = createParticipantWelcomePrivateState();
+  commitHash(deployerName: string, contractAddress: string): Uint8Array {
+    if (deployerName in this.userPrivateStates) {
+      const battlePrivateState = this.userPrivateStates[deployerName];
+      if (battlePrivateState.localGameplay !== null) {
+        const cellAssignments = battlePrivateState.localGameplay.get(contractAddress);
+        if (cellAssignments === undefined) {
+          throw new Error(`No local gameplay for contract ${contractAddress}`);
+        }
+        return pureCircuits.vectorHash(cellAssignments);
+      }
+      throw new Error(`${deployerName} does not exist`);
+    }
+    throw new Error(`${deployerName} does not exist`);
+  }
+
+  participantJoin(participantName: string): NavalBattlePrivateState {
+    const participantPrivateState = randomNavalBattleGamePrivateState();
     this.turnContext = this.buildTurnContext(participantPrivateState);
     this.updateUserPrivateStateByName(participantName)(participantPrivateState);
     this.updateUserPrivateState = this.updateUserPrivateStateByName(participantName);
@@ -103,38 +101,42 @@ export class WelcomeSimulator {
     return ledger(this.circuitContext.transactionContext.state);
   }
 
-  getPrivateState(name: string): WelcomePrivateState {
+  getPrivateState(name: string): NavalBattlePrivateState {
     return this.userPrivateStates[name];
   }
 
   private updateUserPrivateStateByName =
     (name: string) =>
-    (newPrivateState: WelcomePrivateState): void => {
+    (newPrivateState: NavalBattlePrivateState): void => {
       this.userPrivateStates[name] = newPrivateState;
     };
 
-  as(name: string): WelcomeSimulator {
+  as(name: string): NavalBattleGameSimulator {
     this.turnContext = this.buildTurnContext(this.userPrivateStates[name]);
     this.updateUserPrivateState = this.updateUserPrivateStateByName(name);
     return this;
   }
 
-  private updateStateAndGetLedger<T>(circuitResults: CircuitResults<WelcomePrivateState, T>): Ledger {
+  private updateStateAndGetLedger<T>(circuitResults: CircuitResults<NavalBattlePrivateState, T>): Ledger {    
     this.circuitContext = circuitResults.context;
     this.updateUserPrivateState(circuitResults.context.currentPrivateState);
     return this.getLedgerState();
   }
 
-  addOrganizer(organizerPk: Uint8Array): Ledger {
-    return this.updateStateAndGetLedger(this.contract.impureCircuits.add_organizer(this.turnContext, organizerPk));
+  joinGame(playerPk: Uint8Array): Ledger {
+    return this.updateStateAndGetLedger(this.contract.impureCircuits.joinGame(this.turnContext, playerPk));
   }
 
   // transitions functions
-  addParticipant(participantId: string): Ledger {
-    return this.updateStateAndGetLedger(this.contract.impureCircuits.add_participant(this.turnContext, participantId));
+  commitGrid(player: Uint8Array, playerSetup: number[]): Ledger {    
+    return this.updateStateAndGetLedger(this.contract.impureCircuits.commitGrid(this.turnContext, player, playerSetup));
   }
 
-  checkIn(participantId: string): Ledger {
-    return this.updateStateAndGetLedger(this.contract.impureCircuits.check_in(this.turnContext, participantId));
+  startGame(): Ledger {
+    return this.updateStateAndGetLedger(this.contract.impureCircuits.startGame(this.turnContext));
+  }
+
+  makeMove(player: Uint8Array, move: bigint): Ledger {
+    return this.updateStateAndGetLedger(this.contract.impureCircuits.makeMove(this.turnContext, player, move));
   }
 }

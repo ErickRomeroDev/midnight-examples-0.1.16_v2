@@ -2,9 +2,9 @@ pragma language_version >= 0.12.1;
 
 import CompactStandardLibrary;
 
-enum CellState { unset, hit, miss }
+export enum CellState { unset, hit, miss }
 
-enum CellAssignment { blank, ship }
+export enum CellAssignment { blank, ship }
 
 //private state
 witness local_sk(): Bytes<32>;
@@ -15,6 +15,7 @@ witness set_local_gameplay(playerSetup: Vector<100, CellAssignment>): Bytes<32>;
 // public state
 export ledger gameStarted: Cell<Boolean>;
 export ledger players: Counter;
+export ledger internalCounter: Counter;
 
 export ledger playerOnePk: Cell<Bytes<32>> ;
 export ledger playerOneGrid: Map<Uint<32>, CellState>;
@@ -37,7 +38,7 @@ export ledger playerTwoCurrentMove: Cell<Uint<0..100>>;
 export ledger playerTwoIsWinner: Cell<Boolean>;
 
 constructor(plOne: Bytes<32>) {
-  for i = 1 to 100 do {
+  for i = 1 to 101 do {
     playerOneGrid.insert(i, CellState.unset);
     playerTwoGrid.insert(i, CellState.unset);
   }
@@ -55,7 +56,7 @@ constructor(plOne: Bytes<32>) {
 //circuits
 export circuit joinGame(player: Bytes<32>): Void {
   assert (gameStarted == false) "Game has already started" ;    
-  assert (players < 2) "Game is designed for two players";
+  assert (players.less_than(2)) "Game is designed for two players";
   assert (playerOnePk != player) "Player one cannot join the game twice";  
   playerTwoPk.write(player);
   playerTwoHasJoinedTheGame.write(true);  
@@ -64,8 +65,16 @@ export circuit joinGame(player: Bytes<32>): Void {
 }
 
 export circuit commitGrid(player: Bytes<32>, playerSetup: Vector<100, CellAssignment>): Void {
-  assert (gameStarted == false) "Game has already started" ;
-  assert (players < 2) "Game is designed for two players";    
+  assert (gameStarted == false) "Game has already started" ;  
+
+  for cellPlay in playerSetup do {
+    if (cellPlay == CellAssignment.ship) {
+      internalCounter.increment(1);
+    }     
+  }    
+  assert (internalCounter == 17) "Player has not placed 17 ships"; 
+  internalCounter.reset_to_default();
+
   if (player == playerOnePk) {
     assert (playerOneHasJoinedTheGame == true) "Player one has not joined the game";
     assert (playerOneHasCommitted == false) "Player one has already committed";
@@ -107,10 +116,10 @@ export circuit makeMove(player: Bytes<32>, move: Uint<0..100>): Void {
 
     //check if player two move was a hit or a miss, and update player one grid
     assert (vectorHash(local_gameplay()) == playerOneCommit) "Player one has tampered with the grid";
-    const counter = 0;
+    
     for gameCell in local_gameplay() do {
-      counter +1;
-      if (counter == playerTwoCurrentMove) {        
+      internalCounter.increment(1);
+      if (internalCounter == playerTwoCurrentMove) {        
         if (gameCell == CellAssignment.ship) {
           playerOneGrid.insert(playerTwoCurrentMove, CellState.hit);          
           if (playerTwoHits == 16) {
@@ -121,6 +130,7 @@ export circuit makeMove(player: Bytes<32>, move: Uint<0..100>): Void {
           playerOneGrid.insert(playerTwoCurrentMove, CellState.miss);
       } 
     }}
+    internalCounter.reset_to_default();
 
     //change turns
     playerOneTimeToPlay.write(false);
@@ -135,10 +145,10 @@ export circuit makeMove(player: Bytes<32>, move: Uint<0..100>): Void {
 
     //check if player one move was a hit or a miss, and update player two grid
     assert (vectorHash(local_gameplay()) == playerTwoCommit) "Player two has tampered with the grid";
-    const counter = 0;
+    
     for gameCell in local_gameplay() do {
-      counter +1;
-      if (counter == playerOneCurrentMove) {        
+      internalCounter.increment(1);
+      if (internalCounter == playerOneCurrentMove) {        
         if (gameCell == CellAssignment.ship) {
           playerTwoGrid.insert(playerOneCurrentMove, CellState.hit);          
           if (playerOneHits == 16) {
@@ -149,6 +159,7 @@ export circuit makeMove(player: Bytes<32>, move: Uint<0..100>): Void {
           playerTwoGrid.insert(playerOneCurrentMove, CellState.miss);
       } 
     }}
+    internalCounter.reset_to_default();
 
     //change turns
     playerTwoTimeToPlay.write(false);
