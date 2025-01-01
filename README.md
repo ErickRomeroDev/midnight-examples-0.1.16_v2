@@ -33,3 +33,11 @@ Node.js - LTS/hydrogen
 
 ## Some external issues resolvers
 when doing a compile, change the exports for export for ledger, contract, purecircuits and others. At contract/dist/manged/mxmxmx/contract/index.cjs.
+
+### For files bigger than 100MB
+git rm --cached "xxxx"
+
+1. sudo dnf install git-lfs
+2. git lfs --version
+3. git lfs install
+4. git lfs track "xxxxx"

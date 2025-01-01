@@ -4,6 +4,7 @@
 *.tsbuildinfo
 *.local
 package-lock.json
+examples/naval-battle-game/naval-battle-game-ui/public/keys/makeMove.prover
 .pnp.*
 .yarn/*
 !.yarn/patches
