@@ -32,4 +32,4 @@ Node.js - LTS/hydrogen
 7. Within the UI folder, run the UI using yarn start
 
 ## Some external issues resolvers
-when doing a compile, change the exports for export for ledger, contract, purecircuits and others. At contract/dist/manged/mxmxmx/contract/index.cjs
+when doing a compile, change the exports for export for ledger, contract, purecircuits and others. At contract/dist/manged/mxmxmx/contract/index.cjs.
