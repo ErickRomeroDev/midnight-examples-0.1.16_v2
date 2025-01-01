@@ -1,21 +1,21 @@
-import { WelcomePrivateState, Ledger, pureCircuits } from '@midnight-ntwrk/naval-battle-game-contract';
-import { OrganizerWelcomeState, Roles } from '../types';
+import { NavalBattlePrivateState, Ledger, pureCircuits } from '@midnight-ntwrk/naval-battle-game-contract';
+import { PlayerGameState, Roles } from '../types';
 import { EphemeralState } from './ephemeral-state-bloc';
 import { toHex } from '@midnight-ntwrk/midnight-js-utils';
 
-export const deriveOrganizerWelcomeState = (
-  { organizerPks }: Ledger,
-  { organizerSecretKey }: WelcomePrivateState,
+export const derivePlayerGameState = (
+  { gameStarted }: Ledger,
+  { secretKey }: NavalBattlePrivateState,
   { actions }: EphemeralState,
-): OrganizerWelcomeState => {
-  if (organizerSecretKey === null) {
+): PlayerGameState => {
+  if (secretKey === null) {
     throw new Error('unexpected null secret key');
   }
-  const publicKey = pureCircuits.public_key(organizerSecretKey);
+  const publicKey = pureCircuits.public_key(secretKey);
   return {
     actions,
-    role: organizerPks.member(publicKey) ? Roles.organizer : Roles.spectator,
+    role: Roles.player,
     publicKey: toHex(publicKey),
-    secretKey: toHex(organizerSecretKey),
+    secretKey: toHex(secretKey),
   };
 };

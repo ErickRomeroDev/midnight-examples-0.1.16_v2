@@ -4,6 +4,7 @@ import { Actions, Roles } from '@midnight-ntwrk/naval-battle-game-midnight-js';
 import { useAppContext } from '../../hooks';
 import { StyledTextField } from '../initialize';
 import { WELCOME_PAGE } from '../../locale';
+import { CellAssignment } from '@midnight-ntwrk/naval-battle-game-contract';
 
 export const NavalBattleGame = (): ReactElement | null => {
   const [participantToAdd, setParticipantToAdd] = useState<string>('');
@@ -14,23 +15,17 @@ export const NavalBattleGame = (): ReactElement | null => {
     return null;
   }
 
-  const isAdded = state !== undefined && state.role === Roles.organizer;
+  const isAdded = state !== undefined && state.role === Roles.player;
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleAddOrganizer = async (): Promise<void> => {
-    if (organizerToAdd === '') {
-      return;
-    }
-    await dispatch({ type: Actions.addOrganizer, payload: organizerToAdd });
+  const handleJoinGame = async (player: Uint8Array): Promise<void> => {   
+    await dispatch({ type: Actions.joinGame, player });
     setOrganizerToAdd('');
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleAddParticipant = async (): Promise<void> => {
-    if (participantToAdd === '') {
-      return;
-    }
-    await dispatch({ type: Actions.addParticipant, payload: participantToAdd });
+  const handleCommit = async (player: Uint8Array, playerSetup: CellAssignment[]): Promise<void> => {   
+    await dispatch({ type: Actions.commitGrid, player, playerSetup });
     setParticipantToAdd('');
   };
 
@@ -94,7 +89,7 @@ export const NavalBattleGame = (): ReactElement | null => {
               textTransform: 'none',
             }}
             onClick={async () => {
-              await handleAddOrganizer();
+              await handleJoinGame( new Uint8Array());
             }}
           >
             {WELCOME_PAGE.add}
@@ -124,7 +119,7 @@ export const NavalBattleGame = (): ReactElement | null => {
               textTransform: 'none',
             }}
             onClick={async () => {
-              await handleAddParticipant();
+              await handleCommit(new Uint8Array(), []);
             }}
           >
             {WELCOME_PAGE.add}

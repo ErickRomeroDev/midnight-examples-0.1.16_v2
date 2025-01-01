@@ -1,62 +1,48 @@
 import {
   AppProviders,
-  WelcomeContract,
-  WelcomeProviders,
-  DeployedWelcomeContract,
-  FinalizedWelcomeCallTxData,
+  NavalBattleGameContract,
+  NavalBattleGameProviders,
+  DeployedNavalBattleGameContract,
+  FinalizedNavalBattleGameCallTxData,
 } from './common-types';
 import { CallTxFailedError, deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import {
   Contract,
-  WelcomePrivateState,
-  createOrganizerWelcomePrivateState,
-  createParticipantWelcomePrivateState,
+  NavalBattlePrivateState,
+  createNavalBattleGameInitialPrivateState,
   ledger,
   witnesses,
   Ledger,
-  INITIAL_PARTICIPANTS_VECTOR_LENGTH,
-  Maybe,
   pureCircuits,
+  CellAssignment,
 } from '@midnight-ntwrk/naval-battle-game-contract';
 import { ContractAddress } from '@midnight-ntwrk/compact-runtime';
 import { FinalizedTxData } from '@midnight-ntwrk/midnight-js-types';
-import {
-  Action,
-  ActionHistory,
-  ActionId,
-  Actions,
-  AsyncActionStates,
-  OrganizerWelcomeAPI,
-  OrganizerWelcomeState,
-  ParticipantWelcomeAPI,
-  ParticipantWelcomeState,
-} from '../types';
+import { Action, ActionHistory, ActionId, Actions, AsyncActionStates, PlayerGameAPI, PlayerGameState } from '../types';
 import * as Rx from 'rxjs';
-import { deriveOrganizerWelcomeState } from './derive-organizer-welcome-state';
+import { derivePlayerGameState } from './derive-organizer-welcome-state';
 import { EphemeralState } from './ephemeral-state-bloc';
-import { deriveParticipantWelcomeState } from './derive-participant-welcome-state';
-import { prettifyLedgerState, prettifyOrganizerState, prettifyParticipantState } from './prettify-utils';
+import { prettifyLedgerState, prettifyOrganizerState } from './prettify-utils';
 
-export const welcomeContractInstance: WelcomeContract = new Contract(witnesses);
+export const navalBattleGameContractInstance: NavalBattleGameContract = new Contract(witnesses);
 
-export const getWelcomePrivateState = (providers: WelcomeProviders): Promise<WelcomePrivateState | null> =>
-  providers.privateStateProvider.get('welcomePrivateState');
+export const getNavalBattleGamePrivateState = async (providers: NavalBattleGameProviders, appProviders: AppProviders): Promise<NavalBattlePrivateState> => {
+  let existingPrivateState = await providers.privateStateProvider.get('navalBattleGamePrivateState')
+  if (existingPrivateState === null) {
+    existingPrivateState = createNavalBattleGameInitialPrivateState(appProviders.crypto.randomSk());
+  } 
+  return existingPrivateState;
+};
 
-const getOrganizerSecretKey = async (providers: WelcomeProviders): Promise<Uint8Array> => {
-  const privateState = await getWelcomePrivateState(providers);
-  if (privateState === null) {
-    throw new Error('Unexpected undefined private state');
-  }
-  if (privateState.organizerSecretKey === null) {
-    throw new Error('Unexpected undefined secret key');
-  }
-  return privateState.organizerSecretKey;
+const getPlayerSecretKey = async (providers: NavalBattleGameProviders, appProviders: AppProviders): Promise<Uint8Array> => {
+  const privateState = await getNavalBattleGamePrivateState(providers, appProviders);  
+  return privateState.secretKey;
 };
 
 const buildAndSubmitCallTx = (
   appProviders: AppProviders,
   action: Action,
-  submitTx: () => Promise<FinalizedWelcomeCallTxData>,
+  submitTx: () => Promise<FinalizedNavalBattleGameCallTxData>,
 ): Promise<ActionId> => {
   const actionId = appProviders.crypto.randomUUID();
   void Rx.firstValueFrom(
@@ -99,14 +85,14 @@ const actionHistoriesEqual = (a: ActionHistory, b: ActionHistory): boolean =>
   Object.keys(a.all).length === Object.keys(b.all).length &&
   Object.keys(a.all).every((key) => key in b.all && a.all[key].status === b.all[key].status);
 
-const organizerStatesEqual = (a: OrganizerWelcomeState, b: OrganizerWelcomeState): boolean =>
+const playerStatesEqual = (a: PlayerGameState, b: PlayerGameState): boolean =>
   a.secretKey === b.secretKey && a.publicKey === b.publicKey && a.role === b.role && actionHistoriesEqual(a.actions, b.actions);
 
-const createStateObservable = <W extends OrganizerWelcomeState | ParticipantWelcomeState>(
-  providers: WelcomeProviders,
+const createStateObservable = <W extends PlayerGameState>(
+  providers: NavalBattleGameProviders,
   appProviders: AppProviders,
   contractAddress: ContractAddress,
-  derivation: (ledgerState: Ledger, privateState: WelcomePrivateState, ephemeralState: EphemeralState) => W,
+  derivation: (ledgerState: Ledger, privateState: NavalBattlePrivateState, ephemeralState: EphemeralState) => W,
   equals: (a: W, b: W) => boolean,
   prettify: (w: W) => object,
 ): Rx.Observable<W> => {
@@ -118,11 +104,11 @@ const createStateObservable = <W extends OrganizerWelcomeState | ParticipantWelc
           appProviders.logger.info({ ledgerState: prettifyLedgerState(ledgerState) });
         }),
       ),
-      Rx.from(getWelcomePrivateState(providers)).pipe(
+      Rx.from(getNavalBattleGamePrivateState(providers, appProviders)).pipe(
         Rx.concatMap((existingPrivateState) =>
-          providers.privateStateProvider.state$('welcomePrivateState').pipe(
+          providers.privateStateProvider.state$('navalBattleGamePrivateState').pipe(
             Rx.startWith(existingPrivateState),
-            Rx.filter((privateState): privateState is WelcomePrivateState => privateState !== null),
+            Rx.filter((privateState): privateState is NavalBattlePrivateState => privateState !== null),
           ),
         ),
       ),
@@ -136,31 +122,19 @@ const createStateObservable = <W extends OrganizerWelcomeState | ParticipantWelc
   );
 };
 
-export const createParticipantsMaybeVector = (initialParticipants: string[]): Maybe<string>[] =>
-  initialParticipants
-    .map((p) => ({
-      is_some: true,
-      value: p,
-    }))
-    .concat(
-      Array(INITIAL_PARTICIPANTS_VECTOR_LENGTH - initialParticipants.length).fill({
-        is_some: false,
-        value: '',
-      }),
-    );
+export const playerOnePk = async (providers: NavalBattleGameProviders, appProviders: AppProviders): Promise<Uint8Array> => {
+  return pureCircuits.public_key(await getNavalBattleGamePrivateState(providers, appProviders).then((s) => s.secretKey));
+};
 
 // TODO: extract deploy and join functions that work for organizer and participant APIs.
-export class OrganizerWelcomeMidnightJSAPI implements OrganizerWelcomeAPI {
-  static async deploy(
-    providers: WelcomeProviders,
-    appProviders: AppProviders,
-    initialParticipants: string[],
-  ): Promise<OrganizerWelcomeMidnightJSAPI> {
+export class NavalBattleGameMidnightJSAPI implements PlayerGameAPI {
+  static async deploy(providers: NavalBattleGameProviders, appProviders: AppProviders): Promise<NavalBattleGameMidnightJSAPI> {
     const deployedContract = await deployContract(providers, {
-      privateStateKey: 'welcomePrivateState',
-      contract: welcomeContractInstance,
-      initialPrivateState: createOrganizerWelcomePrivateState(appProviders.crypto.randomSk()),
-      args: [createParticipantsMaybeVector(initialParticipants)],
+      privateStateKey: 'navalBattleGamePrivateState',
+      contract: navalBattleGameContractInstance,
+      initialPrivateState:
+        (await getNavalBattleGamePrivateState(providers, appProviders)),
+      args: [await playerOnePk(providers, appProviders)],
     });
     appProviders.logger.info({
       contractDeployed: {
@@ -168,40 +142,40 @@ export class OrganizerWelcomeMidnightJSAPI implements OrganizerWelcomeAPI {
         block: deployedContract.deployTxData.public.blockHeight,
       },
     });
-    const secretKey = await getOrganizerSecretKey(providers);
-    return new OrganizerWelcomeMidnightJSAPI(deployedContract, providers, appProviders, secretKey);
+    const secretKey = await getPlayerSecretKey(providers, appProviders);
+    return new NavalBattleGameMidnightJSAPI(deployedContract, providers, appProviders, secretKey);
   }
 
   static async join(
-    providers: WelcomeProviders,
+    providers: NavalBattleGameProviders,
     appProviders: AppProviders,
     contractAddress: ContractAddress,
-  ): Promise<OrganizerWelcomeMidnightJSAPI> {
-    const existingPrivateState = await getWelcomePrivateState(providers);
+  ): Promise<NavalBattleGameMidnightJSAPI> {
+    const existingPrivateState = await getPlayerSecretKey(providers, appProviders);
     const deployedContract = await findDeployedContract(providers, {
       contractAddress,
-      contract: welcomeContractInstance,
-      privateStateKey: 'welcomePrivateState',
-      initialPrivateState: existingPrivateState || createOrganizerWelcomePrivateState(appProviders.crypto.randomSk()),
+      contract: navalBattleGameContractInstance,
+      privateStateKey: 'navalBattleGamePrivateState',
+      initialPrivateState: existingPrivateState,
     });
     appProviders.logger.info({
       contractJoined: {
         address: deployedContract.deployTxData.public.contractAddress,
       },
     });
-    const secretKey = await getOrganizerSecretKey(providers);
-    return new OrganizerWelcomeMidnightJSAPI(deployedContract, providers, appProviders, secretKey);
+    const secretKey = await getPlayerSecretKey(providers, appProviders);
+    return new NavalBattleGameMidnightJSAPI(deployedContract, providers, appProviders, secretKey);
   }
 
   readonly contractAddress: ContractAddress;
   readonly finalizedDeployTxData: FinalizedTxData;
   readonly initialLedgerState: Ledger;
   readonly publicKey: Uint8Array;
-  readonly state$: Rx.Observable<OrganizerWelcomeState>;
+  readonly state$: Rx.Observable<PlayerGameState>;
 
   constructor(
-    private readonly deployedContract: DeployedWelcomeContract,
-    private readonly providers: WelcomeProviders,
+    private readonly deployedContract: DeployedNavalBattleGameContract,
+    private readonly providers: NavalBattleGameProviders,
     private readonly appProviders: AppProviders,
     readonly secretKey: Uint8Array,
   ) {
@@ -220,70 +194,27 @@ export class OrganizerWelcomeMidnightJSAPI implements OrganizerWelcomeAPI {
       this.providers,
       this.appProviders,
       this.contractAddress,
-      deriveOrganizerWelcomeState,
-      organizerStatesEqual,
+      derivePlayerGameState,
+      playerStatesEqual,
       prettifyOrganizerState,
     );
   }
 
-  addParticipant(participantId: string): Promise<ActionId> {
-    return buildAndSubmitCallTx(this.appProviders, Actions.addParticipant, () =>
-      this.deployedContract.callTx.add_participant(participantId),
+  joinGame(player: Uint8Array): Promise<ActionId> {
+    return buildAndSubmitCallTx(this.appProviders, Actions.joinGame, () => this.deployedContract.callTx.joinGame(player));
+  }
+
+  commitGrid(player: Uint8Array, playerSetup: CellAssignment[]): Promise<ActionId> {
+    return buildAndSubmitCallTx(this.appProviders, Actions.commitGrid, () =>
+      this.deployedContract.callTx.commitGrid(player, playerSetup),
     );
   }
 
-  addOrganizer(organizerPk: Uint8Array): Promise<ActionId> {
-    return buildAndSubmitCallTx(this.appProviders, Actions.addOrganizer, () =>
-      this.deployedContract.callTx.add_organizer(organizerPk),
-    );
-  }
-}
-
-const participantStatesEqual = (a: ParticipantWelcomeState, b: ParticipantWelcomeState): boolean =>
-  a.participantId === b.participantId && a.isCheckedIn === b.isCheckedIn && actionHistoriesEqual(a.actions, b.actions);
-
-export class ParticipantWelcomeMidnightJSAPI implements ParticipantWelcomeAPI {
-  static async join(
-    providers: WelcomeProviders,
-    appProviders: AppProviders,
-    contractAddress: ContractAddress,
-  ): Promise<ParticipantWelcomeMidnightJSAPI> {
-    appProviders.logger.info({ joiningContract: contractAddress });
-    const existingPrivateState = await getWelcomePrivateState(providers);
-    const deployedContract = await findDeployedContract(providers, {
-      contractAddress,
-      contract: welcomeContractInstance,
-      privateStateKey: 'welcomePrivateState',
-      initialPrivateState: existingPrivateState || createParticipantWelcomePrivateState(),
-    });
-    appProviders.logger.info({
-      contractJoined: {
-        address: deployedContract.deployTxData.public.contractAddress,
-      },
-    });
-    return new ParticipantWelcomeMidnightJSAPI(deployedContract, providers, appProviders);
+  startGame(): Promise<ActionId> {
+    return buildAndSubmitCallTx(this.appProviders, Actions.startGame, () => this.deployedContract.callTx.startGame());
   }
 
-  readonly contractAddress: ContractAddress;
-  readonly state$: Rx.Observable<ParticipantWelcomeState>;
-
-  constructor(
-    private readonly deployedContract: DeployedWelcomeContract,
-    private readonly providers: WelcomeProviders,
-    private readonly appProviders: AppProviders,
-  ) {
-    this.contractAddress = deployedContract.deployTxData.public.contractAddress;
-    this.state$ = createStateObservable(
-      this.providers,
-      this.appProviders,
-      this.contractAddress,
-      deriveParticipantWelcomeState,
-      participantStatesEqual,
-      prettifyParticipantState,
-    );
-  }
-
-  checkIn(participantId: string): Promise<ActionId> {
-    return buildAndSubmitCallTx(this.appProviders, Actions.checkIn, () => this.deployedContract.callTx.check_in(participantId));
+  makeMove(player: Uint8Array, move: bigint): Promise<ActionId> {
+    return buildAndSubmitCallTx(this.appProviders, Actions.makeMove, () => this.deployedContract.callTx.makeMove(player, move));
   }
 }

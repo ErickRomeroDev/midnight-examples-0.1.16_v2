@@ -1,8 +1,8 @@
 import { createContext, type ReactElement, type ReactNode, useEffect, useState } from 'react';
-import { Actions, type OrganizerWelcomeState, AsyncActionStates, type ActionId } from '@midnight-ntwrk/naval-battle-game-midnight-js';
+import { Actions, type PlayerGameState, AsyncActionStates, type ActionId } from '@midnight-ntwrk/naval-battle-game-midnight-js';
 import { type ContractAddress } from '@midnight-ntwrk/compact-runtime';
 import {
-  OrganizerWelcomeMidnightJSAPI,
+  NavalBattleGameMidnightJSAPI,
   EphemeralStateBloc,
   SubscribablePrivateStateProviderDecorator,
   unsafeCryptography,
@@ -11,7 +11,7 @@ import type { DAppConnectorAPI, DAppConnectorWalletAPI, ServiceUriConfig } from 
 import '@midnight-ntwrk/dapp-connector-api';
 import { type Logger } from 'pino';
 import { useErrorContext } from '../hooks';
-import { type AppProviders, type WelcomeProviders } from '@midnight-ntwrk/naval-battle-game-midnight-js';
+import { type AppProviders, type NavalBattleGameProviders } from '@midnight-ntwrk/naval-battle-game-midnight-js';
 import { pipe, Resource } from '@midnight-ntwrk/naval-battle-game-midnight-js';
 import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-private-state-provider';
 import { FetchZkConfigProvider } from '@midnight-ntwrk/midnight-js-fetch-zk-config-provider';
@@ -28,18 +28,21 @@ import semver from 'semver';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { fromHex } from '@midnight-ntwrk/midnight-js-utils';
 import { getLedgerNetworkId, getZswapNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
+import { CellAssignment } from '@midnight-ntwrk/naval-battle-game-contract';
 
 type DispatchActionType =
-  | { type: typeof Actions.addParticipant; payload: string }
-  | { type: typeof Actions.addOrganizer; payload: string }
-  | { type: 'deploy'; payload: string[] }
-  | { type: 'join'; payload: ContractAddress };
+  | { type: typeof Actions.joinGame; player: Uint8Array }
+  | { type: typeof Actions.commitGrid; player: Uint8Array, playerSetup: CellAssignment[] }
+  | { type: typeof Actions.startGame; payload: string }
+  | { type: typeof Actions.makeMove; player: Uint8Array, move: bigint }
+  | { type: 'deploy' }
+  | { type: 'join'; contractAddress: ContractAddress };
 
 export interface AppContextTypes {
   isLoading: boolean;
   isClientInitialized: boolean;
   contractAddress: ContractAddress | null;
-  state: OrganizerWelcomeState | undefined;
+  state: PlayerGameState | undefined;
   dispatch: (action: DispatchActionType) => Promise<ActionId | undefined>;
 }
 
@@ -61,7 +64,7 @@ const initializeAPIEntrypoint = (
               entity: 'private-state-provider',
             }),
             levelPrivateStateProvider({
-              privateStateStoreName: 'welcome-private-state',
+              privateStateStoreName: 'navalBattleGamePrivateState',
             }),
           ),
           zkConfigProvider: new FetchZkConfigProvider(window.location.origin, fetch.bind(window)),
@@ -96,22 +99,22 @@ const initializeAPIEntrypoint = (
 
 class APIEntrypoint {
   constructor(
-    private readonly providers: WelcomeProviders,
+    private readonly providers: NavalBattleGameProviders,
     private readonly appProviders: AppProviders,
   ) {}
 
-  deploy(initialParticipants: string[]): Promise<OrganizerWelcomeMidnightJSAPI> {
-    return OrganizerWelcomeMidnightJSAPI.deploy(this.providers, this.appProviders, initialParticipants);
+  deploy(): Promise<NavalBattleGameMidnightJSAPI> {
+    return NavalBattleGameMidnightJSAPI.deploy(this.providers, this.appProviders);
   }
 
-  join(address: ContractAddress): Promise<OrganizerWelcomeMidnightJSAPI> {
-    return OrganizerWelcomeMidnightJSAPI.join(this.providers, this.appProviders, address);
+  join(address: ContractAddress): Promise<NavalBattleGameMidnightJSAPI> {
+    return NavalBattleGameMidnightJSAPI.join(this.providers, this.appProviders, address);
   }
 }
 
 export const AppProvider = ({ children, logger }: { children: ReactNode; logger: Logger }): ReactElement => {
-  const [state, setState] = useState<OrganizerWelcomeState>();
-  const [api, setAPI] = useState<OrganizerWelcomeMidnightJSAPI | APIEntrypoint | null>(null);
+  const [state, setState] = useState<PlayerGameState>();
+  const [api, setAPI] = useState<NavalBattleGameMidnightJSAPI | APIEntrypoint | null>(null);
   const [contractAddress, setContractAddress] = useState<ContractAddress | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isClientInitialized, setIsClientInitialized] = useState(false);
@@ -120,10 +123,10 @@ export const AppProvider = ({ children, logger }: { children: ReactNode; logger:
   const navigate = useNavigate();
   const location = useLocation();
 
-  const subscribeToOrganizerWelcomeState = (organizerWelcomeAPI: OrganizerWelcomeMidnightJSAPI): void => {
+  const subscribeToOrganizerWelcomeState = (organizerWelcomeAPI: NavalBattleGameMidnightJSAPI): void => {
     setAPI(organizerWelcomeAPI);
     organizerWelcomeAPI.state$.subscribe({
-      next: (state: OrganizerWelcomeState) => {
+      next: (state: PlayerGameState) => {
         setState(state);
       },
       error: (error) => {
@@ -145,9 +148,9 @@ export const AppProvider = ({ children, logger }: { children: ReactNode; logger:
     uris: ServiceUriConfig,
   ): Promise<void> => {
     const maybeExistingJoinAddress = localStorage.getItem(JOINED_CONTRACT_ADDRESS_KEY);
-    let api: OrganizerWelcomeMidnightJSAPI | APIEntrypoint = await initializeAPIEntrypoint(logger, wallet, uris);
+    let api: NavalBattleGameMidnightJSAPI | APIEntrypoint = await initializeAPIEntrypoint(logger, wallet, uris);
     if (maybeExistingJoinAddress !== null) {
-      api = await initializeWelcomeAPI('join', api, undefined, maybeExistingJoinAddress);
+      api = await initializeWelcomeAPI('join', api, maybeExistingJoinAddress);
     }
     setAPI(api);
     setIsClientInitialized(true);
@@ -155,28 +158,20 @@ export const AppProvider = ({ children, logger }: { children: ReactNode; logger:
 
   const initializeWelcomeAPI = async (
     type: 'join' | 'deploy',
-    apiEntryPoint: APIEntrypoint,
-    initialParticipants?: string[],
+    apiEntryPoint: APIEntrypoint,    
     contractAddress?: ContractAddress,
-  ): Promise<OrganizerWelcomeMidnightJSAPI> => {
+  ): Promise<NavalBattleGameMidnightJSAPI> => {
     try {
       setIsLoading(true);
       let welcomeAPI;
       if (type === 'join') {
-        if (initialParticipants) {
-          throw new Error(
-            `Bug found: attempted to join and passed initial participants: ${JSON.stringify(initialParticipants)}`,
-          );
-        }
+      
         if (!contractAddress) {
           throw new Error('Bug found: attempted to join without providing contract address');
         }
         welcomeAPI = await apiEntryPoint.join(contractAddress);
-      } else {
-        if (!initialParticipants) {
-          throw new Error('Bug found: attempted to deploy and passed no initial participants');
-        }
-        welcomeAPI = await apiEntryPoint.deploy(initialParticipants);
+      } else {      
+        welcomeAPI = await apiEntryPoint.deploy();
       }
       subscribeToOrganizerWelcomeState(welcomeAPI);
       localStorage.setItem(JOINED_CONTRACT_ADDRESS_KEY, welcomeAPI.contractAddress);
@@ -261,30 +256,44 @@ export const AppProvider = ({ children, logger }: { children: ReactNode; logger:
     setIsLoading(true);
     try {
       switch (action.type) {
-        case Actions.addOrganizer: {
-          if (api instanceof OrganizerWelcomeMidnightJSAPI) {
-            return await api.addOrganizer(fromHex(action.payload));
+        case Actions.joinGame: {
+          if (api instanceof NavalBattleGameMidnightJSAPI) {
+            return await api.joinGame(action.player);
           } else {
             return undefined;
           }
         }
-        case Actions.addParticipant: {
-          if (api instanceof OrganizerWelcomeMidnightJSAPI) {
-            return await api.addParticipant(action.payload);
+        case Actions.commitGrid: {
+          if (api instanceof NavalBattleGameMidnightJSAPI) {
+            return await api.commitGrid(action.player, action.playerSetup);
+          } else {
+            return undefined;
+          }
+        }
+        case Actions.startGame: {
+          if (api instanceof NavalBattleGameMidnightJSAPI) {
+            return await api.startGame();
+          } else {
+            return undefined;
+          }
+        }
+        case Actions.makeMove: {
+          if (api instanceof NavalBattleGameMidnightJSAPI) {
+            return await api.makeMove(action.player, action.move);
           } else {
             return undefined;
           }
         }
         case 'deploy':
           if (api instanceof APIEntrypoint) {
-            await initializeWelcomeAPI('deploy', api, action.payload, undefined);
+            await initializeWelcomeAPI('deploy', api);
             return;
           } else {
             return undefined;
           }
         case 'join':
           if (api instanceof APIEntrypoint) {
-            await initializeWelcomeAPI('join', api, undefined, action.payload);
+            await initializeWelcomeAPI('join', api, action.contractAddress);
             return;
           } else {
             return undefined;

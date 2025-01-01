@@ -48,9 +48,8 @@ export const Initialize = (): ReactElement => {
       askForConfirmation({
         title: 'Deploy',
         text: 'Do you want to deploy the contract?',
-        callback: async () => {
-          const initialParticipants = participants.split(' ');
-          await dispatch({ type: 'deploy', payload: initialParticipants });
+        callback: async () => {          
+          await dispatch({ type: 'deploy' });
         },
       });
     }
@@ -64,7 +63,7 @@ export const Initialize = (): ReactElement => {
       title: 'Join',
       text: 'Do you want to join an existing contract?',
       callback: async () => {
-        await dispatch({ type: 'join', payload: joinAddress });
+        await dispatch({ type: 'join', contractAddress: "23" });
       },
     });
   };

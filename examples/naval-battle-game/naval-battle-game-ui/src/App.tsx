@@ -4,7 +4,7 @@ import { Box, useTheme } from '@mui/material';
 
 import { MainLayout } from './components';
 import { AppProvider, ErrorProvider, AlertProvider } from './contexts';
-import { Initialize, NavalBattleGame  } from './pages';
+import { Initialize, NavalBattleGame } from './pages';
 import { type Logger } from 'pino';
 
 const App = ({ logger }: { logger: Logger }): ReactElement => {
@@ -16,11 +16,7 @@ const App = ({ logger }: { logger: Logger }): ReactElement => {
           <AlertProvider>
             <AppProvider logger={logger}>
               <Routes>
-                <Route path="/" element={<MainLayout />}>
-                  <Route path="/naval-battle-game-view" element={<NavalBattleGame />} />
-                  <Route path="/initialize" element={<Initialize />} />
-                  <Route path="/" element={<Navigate to="/initialize" replace />} />
-                </Route>
+                <Route path="/" element={<MainLayout />} />                
               </Routes>
             </AppProvider>
           </AlertProvider>

@@ -1,20 +1,20 @@
 import { MidnightProviders } from '@midnight-ntwrk/midnight-js-types';
 import { Cryptography } from './cryptography';
 import { Logger } from 'pino';
-import { Witnesses, WelcomePrivateState, Contract } from '@midnight-ntwrk/naval-battle-game-contract';
+import { Witnesses, NavalBattlePrivateState , Contract } from '@midnight-ntwrk/naval-battle-game-contract';
 import { SubscribablePrivateStateProvider } from './private-state-decorator';
 import { FoundContract, FinalizedCallTxData } from '@midnight-ntwrk/midnight-js-contracts';
 import { EphemeralStateBloc } from './ephemeral-state-bloc';
 
 export type PrivateStates = {
-  welcomePrivateState: WelcomePrivateState;
+  navalBattleGamePrivateState: NavalBattlePrivateState;
 };
 
-export type WelcomeContract = Contract<WelcomePrivateState, Witnesses<WelcomePrivateState>>;
+export type NavalBattleGameContract = Contract<NavalBattlePrivateState, Witnesses<NavalBattlePrivateState>>;
 
-export type WelcomeCircuitKeys = Exclude<keyof WelcomeContract['impureCircuits'], number | symbol>;
+export type NavalBattleGameCircuitKeys = Exclude<keyof NavalBattleGameContract['impureCircuits'], number | symbol>;
 
-export type WelcomeProviders = MidnightProviders<WelcomeCircuitKeys, PrivateStates> & {
+export type NavalBattleGameProviders = MidnightProviders<NavalBattleGameCircuitKeys, PrivateStates> & {
   privateStateProvider: SubscribablePrivateStateProvider<PrivateStates>;
 };
 
@@ -24,6 +24,6 @@ export type AppProviders = {
   ephemeralStateBloc: EphemeralStateBloc;
 };
 
-export type DeployedWelcomeContract = FoundContract<WelcomePrivateState, WelcomeContract>;
+export type DeployedNavalBattleGameContract = FoundContract<NavalBattlePrivateState, NavalBattleGameContract>;
 
-export type FinalizedWelcomeCallTxData = FinalizedCallTxData<WelcomePrivateState, WelcomeContract, WelcomeCircuitKeys>;
+export type FinalizedNavalBattleGameCallTxData = FinalizedCallTxData<NavalBattlePrivateState, NavalBattleGameContract, NavalBattleGameCircuitKeys>;

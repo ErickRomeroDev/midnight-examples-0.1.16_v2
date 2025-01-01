@@ -186,7 +186,42 @@ describe('Naval Battle Game contract', () => {
 
     simulator.as('battlegameplayer#1').makeMove(playerOnePk, 1n);  
     simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 50n);
-    simulator.as('battlegameplayer#1').makeMove(playerOnePk, 50n);   
+    simulator.as('battlegameplayer#1').makeMove(playerOnePk, 2n);
+    simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 1n);
+    simulator.as('battlegameplayer#1').makeMove(playerOnePk, 3n);
+    simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 2n); 
+    simulator.as('battlegameplayer#1').makeMove(playerOnePk, 4n);
+    simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 3n);
+    simulator.as('battlegameplayer#1').makeMove(playerOnePk, 5n);
+    simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 4n);
+    simulator.as('battlegameplayer#1').makeMove(playerOnePk, 6n);
+    simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 5n);
+    simulator.as('battlegameplayer#1').makeMove(playerOnePk, 7n);
+    simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 6n);
+    simulator.as('battlegameplayer#1').makeMove(playerOnePk, 8n);
+    simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 7n);
+    simulator.as('battlegameplayer#1').makeMove(playerOnePk, 9n);
+    simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 8n);
+    simulator.as('battlegameplayer#1').makeMove(playerOnePk, 10n);
+    simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 9n);
+    simulator.as('battlegameplayer#1').makeMove(playerOnePk, 11n);
+    simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 10n);
+    simulator.as('battlegameplayer#1').makeMove(playerOnePk, 12n);
+    simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 11n);
+    simulator.as('battlegameplayer#1').makeMove(playerOnePk, 13n);
+    simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 12n);
+    simulator.as('battlegameplayer#1').makeMove(playerOnePk, 14n);
+    simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 13n);
+    simulator.as('battlegameplayer#1').makeMove(playerOnePk, 15n);
+    simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 14n);
+    simulator.as('battlegameplayer#1').makeMove(playerOnePk, 16n);
+    simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 15n);
+    simulator.as('battlegameplayer#1').makeMove(playerOnePk, 17n);
+    const finalState = simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 16n);  
   
+    expect(finalState.playerOneIsWinner).toBe(true);
+    expect(finalState.playerTwoIsWinner).toBe(false);
+
+    expect(() => simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 16n)).toThrow();
   });
 });

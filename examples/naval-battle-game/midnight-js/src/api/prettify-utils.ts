@@ -1,4 +1,4 @@
-import { ActionHistory, OrganizerWelcomeState, ParticipantWelcomeState } from '../types';
+import { ActionHistory, PlayerGameState } from '../types';
 import { Ledger } from '@midnight-ntwrk/naval-battle-game-contract';
 import { toHex } from '@midnight-ntwrk/midnight-js-utils';
 
@@ -9,18 +9,12 @@ export const prettifyActions = ({ latest, all }: ActionHistory): object => ({
   ),
 });
 
-export const prettifyOrganizerState = (organizerState: OrganizerWelcomeState) => ({
+export const prettifyOrganizerState = (organizerState: PlayerGameState) => ({
   ...organizerState,
   actions: prettifyActions(organizerState.actions),
 });
 
-export const prettifyParticipantState = (participantState: ParticipantWelcomeState) => ({
-  ...participantState,
-  actions: prettifyActions(participantState.actions),
-});
-
-export const prettifyLedgerState = ({ organizerPks, eligibleParticipants, checkedInParticipants }: Ledger) => ({
-  organizerPks: [...organizerPks].map(toHex),
-  eligibleParticipants: [...eligibleParticipants],
-  checkedInParticipants: [...checkedInParticipants],
+export const prettifyLedgerState = ({ playerOneGrid, playerTwoGrid }: Ledger) => ({  
+  eligibleParticipants: [...playerOneGrid],
+  checkedInParticipants: [...playerTwoGrid],
 });

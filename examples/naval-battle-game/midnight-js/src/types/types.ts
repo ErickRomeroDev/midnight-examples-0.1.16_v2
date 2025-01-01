@@ -2,15 +2,18 @@ import * as t from 'io-ts';
 import { either } from 'fp-ts';
 import { ValuesOf, block } from '../helpers';
 import { Observable } from 'rxjs';
+import { CellAssignment } from '@midnight-ntwrk/naval-battle-game-contract';
 export const Actions = {
-  addParticipant: 'add_participant',
-  addOrganizer: 'add_organizer',
-  checkIn: 'check_in',
+  joinGame: 'joinGame',
+  commitGrid: 'commitGrid',
+  startGame: 'startGame',
+  makeMove: 'makeMove',
 } as const;
 export const ActionCodec = t.union([
-  t.literal(Actions.addParticipant),
-  t.literal(Actions.addOrganizer),
-  t.literal(Actions.checkIn),
+  t.literal(Actions.joinGame),
+  t.literal(Actions.commitGrid),
+  t.literal(Actions.startGame),
+  t.literal(Actions.makeMove),
 ]);
 export type Action = t.TypeOf<typeof ActionCodec>;
 
@@ -124,31 +127,20 @@ export const ActionHistoryCodec = t.type({
 export type ActionHistory = t.TypeOf<typeof ActionHistoryCodec>;
 
 export const Roles = {
-  organizer: 'organizer',
-  participant: 'participant',
-  spectator: 'spectator',
+  player: 'player',
 } as const;
 
-export const OrganizerWelcomeStateCodec = t.intersection([
+export const playerGameStateCodec = t.intersection([
   t.type({ publicKey: t.string, secretKey: t.string }),
-  t.type({ role: t.union([t.literal(Roles.organizer), t.literal(Roles.spectator)]) }),
+  t.type({ role: t.literal(Roles.player) }),
   CommonStateCodec,
 ]);
-export type OrganizerWelcomeState = t.TypeOf<typeof OrganizerWelcomeStateCodec>;
+export type PlayerGameState = t.TypeOf<typeof playerGameStateCodec>;
 
-export const ParticipantWelcomeStateCodec = t.intersection([
-  t.type({ isCheckedIn: t.boolean, participantId: t.union([t.null, t.string]) }),
-  CommonStateCodec,
-]);
-export type ParticipantWelcomeState = t.TypeOf<typeof ParticipantWelcomeStateCodec>;
-
-export interface OrganizerWelcomeAPI {
-  state$: Observable<OrganizerWelcomeState>;
-  addParticipant: (participantId: string) => Promise<ActionId>;
-  addOrganizer: (organizerPk: Uint8Array) => Promise<ActionId>;
-}
-
-export interface ParticipantWelcomeAPI {
-  state$: Observable<ParticipantWelcomeState>;
-  checkIn: (participantId: string) => Promise<ActionId>;
+export interface PlayerGameAPI {
+  state$: Observable<PlayerGameState>;
+  joinGame: (player: Uint8Array) => Promise<ActionId>;
+  commitGrid: (player: Uint8Array, playerSetup: CellAssignment[]) => Promise<ActionId>;
+  startGame: () => Promise<ActionId>;
+  makeMove: (player: Uint8Array, move: bigint) => Promise<ActionId>;
 }

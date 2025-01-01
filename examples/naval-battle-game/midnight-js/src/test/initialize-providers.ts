@@ -1,14 +1,14 @@
 import { Logger } from 'pino';
-import { AppProviders, WelcomeCircuitKeys, WelcomeProviders } from '../common-types';
-import { EphemeralStateBloc } from '../ephemeral-state-bloc';
+import { AppProviders, NavalBattleGameCircuitKeys, NavalBattleGameProviders } from '../api/common-types';
+import { EphemeralStateBloc } from '../api/ephemeral-state-bloc';
 import { Config } from './initialize-welcome';
 import { Resource, pipe } from '../helpers';
 import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
-import { SubscribablePrivateStateProviderDecorator } from '../private-state-decorator';
+import { SubscribablePrivateStateProviderDecorator } from '../api/private-state-decorator';
 import { inMemoryPrivateStateProvider } from './in-memory-private-state-provider';
 import { headlessWalletAndMidnightProvider } from './headless-wallet-provider';
 import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client-proof-provider';
-import { webCryptoCryptography } from '../cryptography';
+import { webCryptoCryptography } from '../api/cryptography';
 import { webcrypto } from 'node:crypto';
 import { NodeZkConfigProvider } from '@midnight-ntwrk/midnight-js-node-zk-config-provider';
 import { Wallet } from '@midnight-ntwrk/wallet-api';
@@ -49,7 +49,7 @@ export const initializeWallet = (
     (wallet) => wallet.close(),
   );
 
-export const initializeProviders = (logger: Logger, config: Config, seed: string): Resource<[WelcomeProviders, AppProviders]> => {
+export const initializeProviders = (logger: Logger, config: Config, seed: string): Resource<[NavalBattleGameProviders, AppProviders]> => {
   return pipe(
     EphemeralStateBloc.init(logger.child({ entity: 'ephemeral state provider' })),
     Resource.zip(initializeWallet(config, logger, seed)),
@@ -57,8 +57,8 @@ export const initializeProviders = (logger: Logger, config: Config, seed: string
       const midnightWalletProvider = await headlessWalletAndMidnightProvider(wallet);
       const publicDataProvider = indexerPublicDataProvider(config.indexer, config.indexerWS);
       const privateStateProvider = new SubscribablePrivateStateProviderDecorator(logger, inMemoryPrivateStateProvider());
-      const zkConfigProvider = new NodeZkConfigProvider<WelcomeCircuitKeys>(config.zkConfigPath);
-      const proofProvider = httpClientProofProvider<WelcomeCircuitKeys>(config.proofServer);
+      const zkConfigProvider = new NodeZkConfigProvider<NavalBattleGameCircuitKeys>(config.zkConfigPath);
+      const proofProvider = httpClientProofProvider<NavalBattleGameCircuitKeys>(config.proofServer);
       logger.info('started providers');
       const welcomeProviders = {
         midnightProvider: midnightWalletProvider,
@@ -87,15 +87,15 @@ export const withNewEphemeralStateProvider = async (name: string, appProviders: 
   return { ...appProviders, ephemeralStateBloc: newEphemeralStateBloc };
 };
 
-export const withNewPrivateStateProvider = (providers: WelcomeProviders, appProviders: AppProviders): WelcomeProviders => ({
+export const withNewPrivateStateProvider = (providers: NavalBattleGameProviders, appProviders: AppProviders): NavalBattleGameProviders => ({
   ...providers,
   privateStateProvider: new SubscribablePrivateStateProviderDecorator(appProviders.logger, inMemoryPrivateStateProvider()),
 });
 
 export const withNewProviders = async (
   name: string,
-  providers: WelcomeProviders,
+  providers: NavalBattleGameProviders,
   appProviders: AppProviders,
-): Promise<[WelcomeProviders, AppProviders]> => {
+): Promise<[NavalBattleGameProviders, AppProviders]> => {
   return [withNewPrivateStateProvider(providers, appProviders), await withNewEphemeralStateProvider(name, appProviders)];
 };

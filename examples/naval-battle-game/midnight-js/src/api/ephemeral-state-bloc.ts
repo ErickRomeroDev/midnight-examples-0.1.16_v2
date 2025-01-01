@@ -3,7 +3,7 @@ import { Bloc, Resource } from '../helpers';
 import { Logger } from 'pino';
 
 /**
- * Ephemeral state of welcome application - manages async actions and their statuses
+ * Ephemeral state of Game application - manages async actions and their statuses
  * It does not need to be persisted at all, but it is an important
  * piece of data mostly in terms of knowing if there is some local action in-progress
  */
