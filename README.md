@@ -35,9 +35,14 @@ Node.js - LTS/hydrogen
 when doing a compile, change the exports for export for ledger, contract, purecircuits and others. At contract/dist/manged/mxmxmx/contract/index.cjs.
 
 ### For files bigger than 100MB
-git rm --cached "xxxx"
-
 1. sudo dnf install git-lfs
 2. git lfs --version
 3. git lfs install
-4. git lfs track "xxxxx"
+4. git lfs track "public/navalBattle/zkir/*"
+
+5. git add public/navalBattle/zkir/*
+
+### Make a file grater than 100MB remove, or fix the repo history creating new one
+git rm --cached "xxxx"
+git push origin main
+git filter-repo --path src/features/battle-naval/libs/contract/managed/naval-battle-game/keys/makeMove.prover --invert-paths --force
