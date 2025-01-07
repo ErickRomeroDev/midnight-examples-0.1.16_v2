@@ -4,7 +4,7 @@ services:
     container_name: 'welcome-proof-server'
     image: 'midnightnetwork/proof-server:3.0.2'
     ports:
-      - "6300"
+      - "6300:6300"
     environment:
       RUST_BACKTRACE: "full"
       LOG_LEVEL: 'WARN'
@@ -13,7 +13,7 @@ services:
     image: 'midnightnetwork/midnight-pubsub-indexer:2.2.7'
     platform: linux/amd64
     ports:
-      - '0:8088'
+      - '8088:8088'
     command: ['-Dlogback.configurationFile=logback-json-file.xml']
     environment:
       LOG_LEVEL: 'WARN'
@@ -33,7 +33,7 @@ services:
     platform: linux/amd64
     container_name: 'welcome-node'
     ports:
-      - "9944"
+      - "9944:9944"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:9944/health" ]
       interval: 2s

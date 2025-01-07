@@ -1,6 +1,6 @@
 import { describe, test, expect } from '@jest/globals';
 import { NavalBattleGameSimulator } from './naval-battle-game-test-setup';
-import { CellAssignment, CellState } from '../managed/naval-battle-game/contract/index.cjs';
+import { CellState } from '../managed/naval-battle-game/contract/index.cjs';
 
 describe('Naval Battle Game contract', () => {
   test('generates correct initial states', () => {
@@ -16,10 +16,10 @@ describe('Naval Battle Game contract', () => {
 
     expect(initialLS.playerOneCommit).toEqual(new Uint8Array(32).fill(0));
     expect(initialLS.playerOneCurrentMove).toBe(0n);
-    expect(initialLS.playerOneGrid.size()).toBe(100n);
+    expect(initialLS.playerOneGrid.size()).toBe(64n);
     expect(initialLS.playerOneGrid.isEmpty()).toBe(false);
-    expect(initialLS.playerOneGrid.member(100n)).toBe(true);
-    expect(initialLS.playerOneGrid.lookup(100n)).toBe(CellState.unset);
+    expect(initialLS.playerOneGrid.member(36n)).toBe(true);
+    expect(initialLS.playerOneGrid.lookup(36n)).toBe(CellState.unset);
     expect(initialLS.playerOneHasCommitted).toBe(false);
     expect(initialLS.playerOneHasJoinedTheGame).toBe(true);
     expect(initialLS.playerOneHits).toBe(0n);
@@ -31,10 +31,10 @@ describe('Naval Battle Game contract', () => {
 
     expect(initialLS.playerTwoCommit).toEqual(new Uint8Array(32).fill(0));
     expect(initialLS.playerTwoCurrentMove).toBe(0n);
-    expect(initialLS.playerTwoGrid.size()).toBe(100n);
+    expect(initialLS.playerTwoGrid.size()).toBe(64n);
     expect(initialLS.playerTwoGrid.isEmpty()).toBe(false);
-    expect(initialLS.playerTwoGrid.member(100n)).toBe(true);
-    expect(initialLS.playerTwoGrid.lookup(100n)).toBe(CellState.unset);
+    expect(initialLS.playerTwoGrid.member(36n)).toBe(true);
+    expect(initialLS.playerTwoGrid.lookup(36n)).toBe(CellState.unset);
     expect(initialLS.playerTwoHasCommitted).toBe(false);
     expect(initialLS.playerTwoHasJoinedTheGame).toBe(false);
     expect(initialLS.playerTwoHits).toBe(0n);
@@ -98,22 +98,20 @@ describe('Naval Battle Game contract', () => {
     simulator.participantJoin('battlegameplayer#2');
 
     const playerOnePk = simulator.playerPk('battlegameplayer#1');     
-    const joinGameLS1 = simulator.as('battlegameplayer#1').commitGrid(playerOnePk, [CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]); 
+    const joinGameLS1 = simulator.as('battlegameplayer#1').commitGrid(playerOnePk, [1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n]); 
     expect(joinGameLS1.playerOneHasCommitted).toBe(true); 
     const contractAddress = simulator.address;   
     const playerOneCommitHash = simulator.as('battlegameplayer#1').commitHash('battlegameplayer#1', contractAddress);
     expect(joinGameLS1.playerOneCommit).toEqual(playerOneCommitHash);
-    const gamePS1 = simulator.getPrivateState('battlegameplayer#1');
-    console.log({gamePS1});
+    const gamePS1 = simulator.getPrivateState('battlegameplayer#1');    
 
     const playerTwoPk = simulator.playerPk('battlegameplayer#2');
     simulator.as('battlegameplayer#2').joinGame(playerTwoPk);
-    const joinGameLS2 = simulator.as('battlegameplayer#2').commitGrid(playerTwoPk, [CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]); 
+    const joinGameLS2 = simulator.as('battlegameplayer#2').commitGrid(playerTwoPk, [1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n]); 
     expect(joinGameLS2.playerTwoHasCommitted).toBe(true); 
     const playerTwoCommitHash = simulator.as('battlegameplayer#2').commitHash('battlegameplayer#2', contractAddress);
     expect(joinGameLS2.playerTwoCommit).toEqual(playerTwoCommitHash);
-    const gamePS2 = simulator.getPrivateState('battlegameplayer#2');
-    console.log({gamePS2});
+    const gamePS2 = simulator.getPrivateState('battlegameplayer#2');    
   });
 
   test('The game can be started', () => {
@@ -121,11 +119,11 @@ describe('Naval Battle Game contract', () => {
     simulator.participantJoin('battlegameplayer#2');
 
     const playerOnePk = simulator.playerPk('battlegameplayer#1'); 
-    simulator.as('battlegameplayer#1').commitGrid(playerOnePk, [CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]); 
+    simulator.as('battlegameplayer#1').commitGrid(playerOnePk, [1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n]); 
     
     const playerTwoPk = simulator.playerPk('battlegameplayer#2');
     simulator.as('battlegameplayer#2').joinGame(playerTwoPk);
-    simulator.as('battlegameplayer#2').commitGrid(playerTwoPk, [CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]); 
+    simulator.as('battlegameplayer#2').commitGrid(playerTwoPk, [1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n]); 
 
     const state = simulator.as('battlegameplayer#1').startGame();
     expect(state.gameStarted).toBe(true);
@@ -136,11 +134,11 @@ describe('Naval Battle Game contract', () => {
     simulator.participantJoin('battlegameplayer#2');
 
     const playerOnePk = simulator.playerPk('battlegameplayer#1'); 
-    simulator.as('battlegameplayer#1').commitGrid(playerOnePk, [CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]); 
+    simulator.as('battlegameplayer#1').commitGrid(playerOnePk, [1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n]); 
     
     const playerTwoPk = simulator.playerPk('battlegameplayer#2');
     simulator.as('battlegameplayer#2').joinGame(playerTwoPk);
-    simulator.as('battlegameplayer#2').commitGrid(playerTwoPk, [CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]); 
+    simulator.as('battlegameplayer#2').commitGrid(playerTwoPk, [1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n]); 
 
     const state = simulator.as('battlegameplayer#1').startGame();
     expect(state.gameStarted).toBe(true);
@@ -151,20 +149,20 @@ describe('Naval Battle Game contract', () => {
     expect(statePlayer1Move1.playerOneTimeToPlay).toBe(false);
     expect(statePlayer1Move1.playerTwoTimeToPlay).toBe(true);
 
-    const statePlayer2Move1 = simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 50n);    
-    expect(statePlayer2Move1.playerTwoCurrentMove).toBe(50n);
+    const statePlayer2Move1 = simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 30n);    
+    expect(statePlayer2Move1.playerTwoCurrentMove).toBe(30n);
     expect(statePlayer2Move1.playerTwoTimeToPlay).toBe(false);
     expect(statePlayer2Move1.playerOneTimeToPlay).toBe(true);
     expect(statePlayer2Move1.playerOneHits).toBe(1n);
     expect(statePlayer2Move1.playerTwoGrid.lookup(1n)).toBe(CellState.hit);
 
-    const statePlayer1Move2 = simulator.as('battlegameplayer#1').makeMove(playerOnePk, 50n);   
-    expect(statePlayer1Move2.playerOneCurrentMove).toBe(50n);
-    expect(statePlayer1Move2.playerTwoCurrentMove).toBe(50n);
+    const statePlayer1Move2 = simulator.as('battlegameplayer#1').makeMove(playerOnePk, 30n);   
+    expect(statePlayer1Move2.playerOneCurrentMove).toBe(30n);
+    expect(statePlayer1Move2.playerTwoCurrentMove).toBe(30n);
     expect(statePlayer1Move2.playerOneTimeToPlay).toBe(false);
     expect(statePlayer1Move2.playerTwoTimeToPlay).toBe(true);
     expect(statePlayer1Move2.playerTwoHits).toBe(0n);
-    expect(statePlayer1Move2.playerOneGrid.lookup(50n)).toBe(CellState.miss);
+    expect(statePlayer1Move2.playerOneGrid.lookup(30n)).toBe(CellState.miss);
 
     expect(statePlayer1Move2.playerOneIsWinner).toBe(false);
     expect(statePlayer1Move2.playerTwoIsWinner).toBe(false);
@@ -175,17 +173,17 @@ describe('Naval Battle Game contract', () => {
     simulator.participantJoin('battlegameplayer#2');
 
     const playerOnePk = simulator.playerPk('battlegameplayer#1'); 
-    simulator.as('battlegameplayer#1').commitGrid(playerOnePk, [CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]); 
+    simulator.as('battlegameplayer#1').commitGrid(playerOnePk, [1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n]); 
     
     const playerTwoPk = simulator.playerPk('battlegameplayer#2');
     simulator.as('battlegameplayer#2').joinGame(playerTwoPk);
-    simulator.as('battlegameplayer#2').commitGrid(playerTwoPk, [CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]); 
+    simulator.as('battlegameplayer#2').commitGrid(playerTwoPk, [1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n]); 
 
     const state = simulator.as('battlegameplayer#1').startGame();
     expect(state.gameStarted).toBe(true);
 
     simulator.as('battlegameplayer#1').makeMove(playerOnePk, 1n);  
-    simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 50n);
+    simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 30n);
     simulator.as('battlegameplayer#1').makeMove(playerOnePk, 2n);
     simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 1n);
     simulator.as('battlegameplayer#1').makeMove(playerOnePk, 3n);
@@ -215,13 +213,11 @@ describe('Naval Battle Game contract', () => {
     simulator.as('battlegameplayer#1').makeMove(playerOnePk, 15n);
     simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 14n);
     simulator.as('battlegameplayer#1').makeMove(playerOnePk, 16n);
-    simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 15n);
-    simulator.as('battlegameplayer#1').makeMove(playerOnePk, 17n);
-    const finalState = simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 16n);  
+    const finalState = simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 15n);      
   
     expect(finalState.playerOneIsWinner).toBe(true);
     expect(finalState.playerTwoIsWinner).toBe(false);
 
-    expect(() => simulator.as('battlegameplayer#2').makeMove(playerTwoPk, 16n)).toThrow();
-  });
+    expect(() => simulator.as('battlegameplayer#1').makeMove(playerTwoPk, 17n)).toThrow();
+  });  
 });

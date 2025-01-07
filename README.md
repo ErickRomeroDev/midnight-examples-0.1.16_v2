@@ -41,8 +41,27 @@ when doing a compile, change the exports for export for ledger, contract, pureci
 4. git lfs track "public/navalBattle/zkir/*"
 
 5. git add public/navalBattle/zkir/*
+6. git lfs ls-files
 
 ### Make a file grater than 100MB remove, or fix the repo history creating new one
 git rm --cached "xxxx"
 git push origin main
 git filter-repo --path src/features/battle-naval/libs/contract/managed/naval-battle-game/keys/makeMove.prover --invert-paths --force
+
+### Initialize dockers
+docker-compose -f test-compose.yml up -d
+docker-compose down
+
+
+
+
+
+"action":"makeMove","error":"Exceeded the cost limit of the guaranteed section (real cost: 1375718, without tx size cost: 1360900, limit: 370450"
+![alt text](image.png)
+
+Exceeded the cost limit of the guaranteed section (real cost: 699315, without tx size cost: 684500, limit: 370375
+![alt text](image-1.png)
+
+Compiling circuit "./src/managed/naval-battle-game/zkir/makeMove.zkir"...
+  k=12, rows=3235
+Error: k = 12 is too small for the given circuit. Try using a larger value of k

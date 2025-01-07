@@ -7,19 +7,17 @@ import { createLogger } from './logger-utils';
 import path from 'node:path';
 import * as Rx from 'rxjs';
 import { initializeWelcome } from './initialize-welcome';
-import { NavalBattleGameMidnightJSAPI, playerOnePk } from '../api/welcome-midnight-js-apis';
+import { getNavalBattleGamePrivateState, NavalBattleGameMidnightJSAPI, playerOnePk } from '../api/welcome-midnight-js-apis';
 import { ActionHistory, ActionId, AsyncAction, AsyncActionStates, PlayerGameState } from '../types';
 import { WebSocket } from 'ws';
 import { NetworkId, setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 import { withNewEphemeralStateProvider, withNewProviders } from './initialize-providers';
 import type { TestLedger, TestOrganizerWelcomeState } from './test-states';
+import { createTestLedgerState, setsEqual, testLedgerStatesEqual, testOrganizerWelcomeStatesEqual } from './test-states';
 import {
-  createTestLedgerState,  
-  setsEqual,
-  testLedgerStatesEqual,
-  testOrganizerWelcomeStatesEqual,
-} from './test-states';
-import { CellAssignment, ledger, Ledger } from '@midnight-ntwrk/naval-battle-game-contract';
+  ledger,
+  Ledger,
+} from '@midnight-ntwrk/naval-battle-game-contract';
 import { ContractStateObservableConfig } from '@midnight-ntwrk/midnight-js-types';
 import { ContractAddress } from '@midnight-ntwrk/compact-runtime';
 import { randomInt } from 'crypto';
@@ -35,7 +33,7 @@ globalThis.WebSocket = WebSocket;
 setNetworkId(NetworkId.Undeployed);
 
 //Yes, with proving, consensus, etc. longer scenarios take a lot of time
-jest.setTimeout(600_000);
+jest.setTimeout(600_000_000);
 
 const sleep = (ms: number) => {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -122,189 +120,148 @@ export const runWelcomeTests = (logger: Logger, providersResource: Resource<[Nav
         ...api.finalizedDeployTxData,
         tx: expect.anything(), // Ignore the newly added `tx` property for the moment
       };
-      console.log({ actual, expected }); 
+      console.log({ actual, expected });
       logger.info({ actual, expected });
-      return expect(actual).toMatchObject(expected);           
+
+      return expect(actual).toMatchObject(expected);
     });
     test("'watchForTxData' should work for call tx submission", async () => {
       const api = await NavalBattleGameMidnightJSAPI.deploy(providers, appProviders);
-      const playerPk = await playerOnePk(providers, appProviders);
-      console.log({ playerPk }); 
-      console.log({ api });  
-      // const addAndyId = await api.commitGrid(playerPk, [CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, CellAssignment.ship, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-      // await waitForCompletion(api.state$, addAndyId);
+
+      const action = await api.commitGrid([1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n]);
+      await waitForCompletion(api.state$, action);
+
+      const actual = await providers.publicDataProvider
+        .watchForContractState(api.contractAddress)
+        .then((contractState) => ledger(contractState.data));
+      console.log({ committed: actual.playerOneHasCommitted });
+
+      const [joinedPlayerProviders, joinedPlayerAppProviders] = await withNewProviders('player2', providers, appProviders);
+
+      const joinedOrganizerAPI = await NavalBattleGameMidnightJSAPI.join(
+        joinedPlayerProviders,
+        joinedPlayerAppProviders,
+        api.contractAddress,
+      );
+      logger.info({ api });
+      logger.info({ joinedOrganizerAPI });
+
+      const preAction = await joinedOrganizerAPI.joinGame();
+      await waitForCompletion(joinedOrganizerAPI.state$, preAction);      
+
+      const stateAfterJoin = await providers.publicDataProvider
+        .watchForContractState(api.contractAddress)
+        .then((contractState) => ledger(contractState.data));
+      logger.info({ stateAfterJoin });
+
+      logger.info({ player2PK: joinedOrganizerAPI.publicKey });
+
+      const commitAction = await joinedOrganizerAPI.commitGrid([1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n]);
+      await waitForCompletion(joinedOrganizerAPI.state$, commitAction);      
+
+      const stateAfterCommit = await providers.publicDataProvider
+        .watchForContractState(api.contractAddress)
+        .then((contractState) => ledger(contractState.data));
+      logger.info({ stateAfterCommit });
+
+      const startGameAction = await joinedOrganizerAPI.startGame();
+      await waitForCompletion(joinedOrganizerAPI.state$, startGameAction);
+      const stateAfterStartGame = await providers.publicDataProvider
+        .watchForContractState(api.contractAddress)
+        .then((contractState) => ledger(contractState.data));
+      logger.info({ stateAfterStartGame });
+
+      const player1Mov1Action = await api.makeMove(1n);
+      await waitForCompletion(api.state$, player1Mov1Action);
+      const stateAfterplayer1Mov1 = await providers.publicDataProvider
+        .watchForContractState(api.contractAddress)
+        .then((contractState) => ledger(contractState.data));
+      logger.info({ stateAfterplayer1Mov1 });
+
+      const player2Mov1Action = await joinedOrganizerAPI.makeMove(30n);
+      await waitForCompletion(joinedOrganizerAPI.state$, player2Mov1Action);
+      
+      const player1Mov2Action = await api.makeMove(2n);
+      await waitForCompletion(api.state$, player1Mov2Action);
+      const player2Mov2Action = await joinedOrganizerAPI.makeMove(1n);
+      await waitForCompletion(joinedOrganizerAPI.state$, player2Mov2Action);
+
+      const player1Mov3Action = await api.makeMove(3n);
+      await waitForCompletion(api.state$, player1Mov3Action);
+      const player2Mov3Action = await joinedOrganizerAPI.makeMove(2n);
+      await waitForCompletion(joinedOrganizerAPI.state$, player2Mov3Action);
+
+      const player1Mov4Action = await api.makeMove(4n);
+      await waitForCompletion(api.state$, player1Mov4Action);
+      const player2Mov4Action = await joinedOrganizerAPI.makeMove(3n);
+      await waitForCompletion(joinedOrganizerAPI.state$, player2Mov4Action);
+
+      const player1Mov5Action = await api.makeMove(5n);
+      await waitForCompletion(api.state$, player1Mov5Action);
+      const player2Mov5Action = await joinedOrganizerAPI.makeMove(4n);
+      await waitForCompletion(joinedOrganizerAPI.state$, player2Mov5Action);
+
+      const player1Mov6Action = await api.makeMove(6n);
+      await waitForCompletion(api.state$, player1Mov6Action);
+      const player2Mov6Action = await joinedOrganizerAPI.makeMove(5n);
+      await waitForCompletion(joinedOrganizerAPI.state$, player2Mov6Action);
+
+      const player1Mov7Action = await api.makeMove(7n);
+      await waitForCompletion(api.state$, player1Mov7Action);
+      const player2Mov7Action = await joinedOrganizerAPI.makeMove(6n);
+      await waitForCompletion(joinedOrganizerAPI.state$, player2Mov7Action);
+
+      const player1Mov8Action = await api.makeMove(8n);
+      await waitForCompletion(api.state$, player1Mov8Action);
+      const player2Mov8Action = await joinedOrganizerAPI.makeMove(7n);
+      await waitForCompletion(joinedOrganizerAPI.state$, player2Mov8Action);
+
+      const player1Mov9Action = await api.makeMove(9n);
+      await waitForCompletion(api.state$, player1Mov9Action);
+      const player2Mov9Action = await joinedOrganizerAPI.makeMove(8n);
+      await waitForCompletion(joinedOrganizerAPI.state$, player2Mov9Action);
+
+      const player1Mov10Action = await api.makeMove(10n);
+      await waitForCompletion(api.state$, player1Mov10Action);
+      const player2Mov10Action = await joinedOrganizerAPI.makeMove(9n);
+      await waitForCompletion(joinedOrganizerAPI.state$, player2Mov10Action);
+
+      const player1Mov11Action = await api.makeMove(11n);
+      await waitForCompletion(api.state$, player1Mov11Action);
+      const player2Mov11Action = await joinedOrganizerAPI.makeMove(10n);
+      await waitForCompletion(joinedOrganizerAPI.state$, player2Mov11Action);
+
+      const player1Mov12Action = await api.makeMove(12n);
+      await waitForCompletion(api.state$, player1Mov12Action);
+      const player2Mov12Action = await joinedOrganizerAPI.makeMove(11n);
+      await waitForCompletion(joinedOrganizerAPI.state$, player2Mov12Action);
+
+      const player1Mov13Action = await api.makeMove(13n);
+      await waitForCompletion(api.state$, player1Mov13Action);
+      const player2Mov13Action = await joinedOrganizerAPI.makeMove(12n);
+      await waitForCompletion(joinedOrganizerAPI.state$, player2Mov13Action);
+
+      const player1Mov14Action = await api.makeMove(14n);
+      await waitForCompletion(api.state$, player1Mov14Action);
+      const player2Mov14Action = await joinedOrganizerAPI.makeMove(13n);
+      await waitForCompletion(joinedOrganizerAPI.state$, player2Mov14Action);
+
+      const player1Mov15Action = await api.makeMove(15n);
+      await waitForCompletion(api.state$, player1Mov15Action);
+      const player2Mov15Action = await joinedOrganizerAPI.makeMove(14n);
+      await waitForCompletion(joinedOrganizerAPI.state$, player2Mov15Action);
+
+      const player1Mov16Action = await api.makeMove(16n);
+      await waitForCompletion(api.state$, player1Mov16Action);
+      const player2Mov16Action = await joinedOrganizerAPI.makeMove(15n);
+      await waitForCompletion(joinedOrganizerAPI.state$, player2Mov16Action);
+      
+      const stateAfterplayer2Mov16 = await providers.publicDataProvider
+        .watchForContractState(api.contractAddress)
+        .then((contractState) => ledger(contractState.data));
+      logger.info({ stateAfterplayer2Mov16 });
+
     });
-    // const ledgerStatesEqual = (a: Ledger, b: Ledger): boolean =>
-    //   setsEqual(new Set(a.eligibleParticipants), new Set(b.eligibleParticipants)) &&
-    //   setsEqual(new Set(a.checkedInParticipants), new Set(b.checkedInParticipants)) &&
-    //   setsEqual(new Set([...a.organizerPks].map(toHex)), new Set([...b.organizerPks].map(toHex)));
-    // test("'watchForContractState' should work when watch begins after deploy", async () => {
-    //   const api = await NavalBattleGameMidnightJSAPI.deploy(providers, appProviders);
-    //   const actual = await providers.publicDataProvider
-    //     .watchForContractState(api.contractAddress)
-    //     .then((contractState) => ledger(contractState.data));
-    //   const expected = api.initialLedgerState;
-    //   return expect(ledgerStatesEqual(actual, expected)).toBe(true);
-    // });
-    // test("subscriptions to deployer 'state$' should start with the latest version of organizer welcome state", async () => {
-    //   const api = await NavalBattleGameMidnightJSAPI.deploy(providers, appProviders, ['jim']);
-    //   const addParticipantId0 = await api.addParticipant('andy');
-    //   await waitForCompletion(api.state$, addParticipantId0);
-    //   const addParticipantId1 = await api.addParticipant('thomas');
-    //   await waitForCompletion(api.state$, addParticipantId1);
-    //   const unsub = expectOrganizerWelcomeStates(api.state$, [
-    //     createTestOrganizerWelcomeState(api.secretKey, api.publicKey, 'organizer', {
-    //       action: 'add_participant',
-    //       status: 'success',
-    //     }),
-    //   ]);
-    //   // to ensure no lagging states arrive
-    //   await sleep(10000);
-    //   unsub();
-    // });
-    // test('organizers can join and rejoin without replaying the entire state history', async () => {
-    //   const deployerAPI = await NavalBattleGameMidnightJSAPI.deploy(providers, appProviders);
-    //   const addParticipantId = await deployerAPI.addParticipant('andy');
-    //   await waitForCompletion(deployerAPI.state$, addParticipantId);
-    //   const [joinedOrganizerProviders, joinedOrganizerAppProviders] = await withNewProviders(
-    //     'joined-organizer',
-    //     providers,
-    //     appProviders,
-    //   );
-    //   const joinedOrganizerAPI = await NavalBattleGameMidnightJSAPI.join(
-    //     joinedOrganizerProviders,
-    //     joinedOrganizerAppProviders,
-    //     deployerAPI.contractAddress,
-    //   );
-    //   const joinedOrganizerExpectedFirstState = createTestOrganizerWelcomeState(
-    //     joinedOrganizerAPI.secretKey,
-    //     joinedOrganizerAPI.publicKey,
-    //     'spectator',
-    //     null,
-    //   );
-    //   const joinedOrganizerExpectedSecondState = createTestOrganizerWelcomeState(
-    //     joinedOrganizerAPI.secretKey,
-    //     joinedOrganizerAPI.publicKey,
-    //     'organizer',
-    //     null,
-    //   );
-    //   const unsub0 = expectOrganizerWelcomeStates(joinedOrganizerAPI.state$, [
-    //     joinedOrganizerExpectedFirstState,
-    //     joinedOrganizerExpectedSecondState,
-    //   ]);
-    //   const addOrganizerId = await deployerAPI.addOrganizer(joinedOrganizerAPI.publicKey);
-    //   await waitForCompletion(deployerAPI.state$, addOrganizerId);
-    //   await sleep(10000);
-    //   unsub0();
-    //   // We create a new ephemeral state provider to simulate the user refreshing/revisiting the application web page.
-    //   // This clears the action history.
-    //   const rejoinedOrganizerAppProviders = await withNewEphemeralStateProvider(
-    //     'rejoined-organizer',
-    //     joinedOrganizerAppProviders,
-    //   );
-    //   const rejoinedOrganizerAPI = await NavalBattleGameMidnightJSAPI.join(
-    //     joinedOrganizerProviders,
-    //     rejoinedOrganizerAppProviders,
-    //     deployerAPI.contractAddress,
-    //   );
-    //   const rejoinedOrganizerExpectedFirstState = createTestOrganizerWelcomeState(
-    //     joinedOrganizerAPI.secretKey,
-    //     joinedOrganizerAPI.publicKey,
-    //     'organizer',
-    //     null,
-    //   );
-    //   const unsub1 = expectOrganizerWelcomeStates(rejoinedOrganizerAPI.state$, [rejoinedOrganizerExpectedFirstState]);
-    //   await sleep(10000);
-    //   unsub1();
-    //   const [participantProviders, participantAppProviders] = await withNewProviders(
-    //     'joined-participant',
-    //     providers,
-    //     appProviders,
-    //   );
-    // });
-    // const prettifyLedgerState = ({ organizerPks, eligibleParticipants, checkedInParticipants }: Ledger) => ({
-    //   organizerPks: [...organizerPks].map(toHex),
-    //   eligibleParticipants: [...eligibleParticipants],
-    //   checkedInParticipants: [...checkedInParticipants],
-    // });
-    // const ledgerState$ =
-    //   (providers: NavalBattleGameProviders, appProviders: AppProviders) =>
-    //   (config: ContractStateObservableConfig) =>
-    //   (contractAddress: ContractAddress): Rx.Observable<Ledger> => {
-    //     const streamLogger = appProviders.logger.child({ entity: `ledgerState$-${randomInt(0, 1000)}` });
-    //     return providers.publicDataProvider.contractStateObservable(contractAddress, config).pipe(
-    //       Rx.map((contractState) => ledger(contractState.data)),
-    //       Rx.distinctUntilChanged(ledgerStatesEqual),
-    //       Rx.tap((ledgerState) => streamLogger.info(prettifyLedgerState(ledgerState))),
-    //     );
-    //   };
-    // test("'contractStateObservable' with 'all' configuration should return all contract states", async () => {
-    //   const deployerAPI = await NavalBattleGameMidnightJSAPI.deploy(providers, appProviders);
-    //   const expected0 = createTestLedgerState([deployerAPI.publicKey], [], ['jim']);
-    //   const expected1 = createTestLedgerState([deployerAPI.publicKey], [], ['jim', 'molly']);
-    //   const expected2 = createTestLedgerState([deployerAPI.publicKey], ['molly'], ['jim', 'molly']);
-    //   const unsub0 = expectLedgerStates(ledgerState$(providers, appProviders)({ type: 'all' })(deployerAPI.contractAddress), [
-    //     expected0,
-    //     expected1,
-    //     expected2,
-    //   ]);
-    //   const addMollyId = await deployerAPI.addParticipant('molly');
-    //   await waitForCompletion(deployerAPI.state$, addMollyId);
-    //   const [participantProvider, participantAppProviders] = await withNewProviders('participant', providers, appProviders);
-    //   const participantAPI = await NavalBattleGameMidnightJSAPI.join(
-    //     participantProvider,
-    //     participantAppProviders,
-    //     deployerAPI.contractAddress,
-    //   );
-    //   const checkInId = await participantAPI.checkIn('molly');
-    //   await waitForCompletion(participantAPI.state$, checkInId);
-    //   await sleep(5000);
-    //   unsub0();
-    //   const unsub1 = expectLedgerStates(ledgerState$(providers, appProviders)({ type: 'all' })(deployerAPI.contractAddress), [
-    //     expected0,
-    //     expected1,
-    //     expected2,
-    //   ]);
-    //   await sleep(5000);
-    //   unsub1();
-    // });
-    // const actionIdToTxId = (actions: ActionHistory, actionId: ActionId): TransactionId => {
-    //   const action = actions.all[actionId];
-    //   if (action === undefined) {
-    //     throw new Error(`Action ${actionId} is undefined`);
-    //   }
-    //   if (action.status === AsyncActionStates.success || action.status === AsyncActionStates.error) {
-    //     if (action.finalizedTxData !== null) {
-    //       return action.finalizedTxData.txId;
-    //     }
-    //   }
-    //   throw new Error(`Action ${JSON.stringify(action)} does not have transaction data associated with it`);
-    // };
-    // test("'contractStateObservable' with 'txId' should work", async () => {
-    //   const deployerAPI = await NavalBattleGameMidnightJSAPI.deploy(providers, appProviders);
-    //   const addMollyId = await deployerAPI.addParticipant('molly');
-    //   await waitForCompletion(deployerAPI.state$, addMollyId);
-    //   const addAndyId = await deployerAPI.addParticipant('andy');
-    //   await waitForCompletion(deployerAPI.state$, addAndyId);
-    //   const expected0 = createTestLedgerState([deployerAPI.publicKey], [], ['jim', 'molly']);
-    //   const expected1 = createTestLedgerState([deployerAPI.publicKey], [], ['jim', 'molly', 'andy']);
-    //   const ephemeralState = await Rx.firstValueFrom(appProviders.ephemeralStateBloc.state$);
-    //   const addMollyTxId = actionIdToTxId(ephemeralState.actions, addMollyId);
-    //   const unsub0 = expectLedgerStates(
-    //     ledgerState$(providers, appProviders)({ type: 'txId', txId: addMollyTxId, inclusive: true })(deployerAPI.contractAddress),
-    //     [expected0, expected1],
-    //   );
-    //   await sleep(5000);
-    //   unsub0();
-    //   const unsub1 = expectLedgerStates(
-    //     ledgerState$(providers, appProviders)({ type: 'txId', txId: addMollyTxId, inclusive: false })(
-    //       deployerAPI.contractAddress,
-    //     ),
-    //     [expected1],
-    //   );
-    //   await sleep(5000);
-    //   unsub1();
-    // });
   });
 };
 

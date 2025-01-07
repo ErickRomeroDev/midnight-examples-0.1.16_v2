@@ -153,6 +153,7 @@ export const buildWalletAndWaitForFunds = async (
     'warn',
   );
   wallet.start();
+
   const state = await Rx.firstValueFrom(wallet.state());
   logger.info(`Your wallet seed is: ${seed}`);
   logger.info(`Your wallet address is: ${state.address}`);
@@ -163,6 +164,24 @@ export const buildWalletAndWaitForFunds = async (
     balance = await waitForFunds(wallet);
   }
   logger.info(`Your wallet balance is: ${balance}`);
+
+  const transferRecipe = await wallet.transferTransaction([
+    {
+      amount: 1000000000n,
+      receiverAddress:
+        '5feff6534cae3d59e03275b299f2cd052e02e2084cfd63c4fff2568971c1343e|0300aa6a2d2ed980354bc5f14d595e6b6d8bd740bb99e9115c167c357e2b52865cb808f54d5ce551b5d79df33bb3878baaba5aa8a1be4d510b88',
+      type: nativeToken(), // tDUST token type
+    },
+  ]);
+  const provenTransaction = await wallet.proveTransaction(transferRecipe);
+ const tx = await wallet.submitTransaction(provenTransaction);
+ console.log({tx});
+ const state2 = await Rx.firstValueFrom(wallet.state());
+  logger.info(`Your wallet seed is: ${seed}`);
+  logger.info(`Your wallet address is: ${state2.address}`);
+  let balance2 = state2.balances[nativeToken()];
+  console.log({balance2});
+
   return wallet;
 };
 

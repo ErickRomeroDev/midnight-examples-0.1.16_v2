@@ -128,7 +128,7 @@ export class NavalBattleGameSimulator {
   }
 
   // transitions functions
-  commitGrid(player: Uint8Array, playerSetup: number[]): Ledger {    
+  commitGrid(player: Uint8Array, playerSetup: bigint[]): Ledger {    
     return this.updateStateAndGetLedger(this.contract.impureCircuits.commitGrid(this.turnContext, player, playerSetup));
   }
 
@@ -138,5 +138,5 @@ export class NavalBattleGameSimulator {
 
   makeMove(player: Uint8Array, move: bigint): Ledger {
     return this.updateStateAndGetLedger(this.contract.impureCircuits.makeMove(this.turnContext, player, move));
-  }
+  } 
 }
